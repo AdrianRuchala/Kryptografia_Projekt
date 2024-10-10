@@ -6,4 +6,5 @@
     <string name="encrypted_text">Zaszyfrowany tekst:</string>
     <string name="select_encryption">Wybierz rodzaj szyfrowania</string>
     <string name="dialog_negative">Anuluj</string>
+    <string name="select_file">Wybierz plik</string>
 </resources>
