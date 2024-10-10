@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Kryptografia_Projekt</string>
+    <string name="select_encryption_type">Rodzaj szyfrowania:</string>
+    <string name="type_text">Wprowadź teskt</string>
+    <string name="encrypt">Zaszyfruj</string>
+    <string name="encrypted_text">Zaszyfrowany tekst:</string>
+    <string name="select_encryption">Wybierz rodzaj szyfrowania</string>
+    <string name="dialog_negative">Anuluj</string>
 </resources>
