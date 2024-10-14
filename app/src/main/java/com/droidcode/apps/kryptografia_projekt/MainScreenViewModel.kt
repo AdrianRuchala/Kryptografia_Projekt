@@ -15,12 +15,17 @@ class MainScreenViewModel : ViewModel() {
                 }
             }
 
-            EncryptType.Transposition -> {  }
+            EncryptType.Transposition -> {
+                encryptTransposition(textToEncrypt) { newText ->
+                    encryptedText.value = newText
+                }
+            }
         }
     }
 
     private fun encryptMonoalphabetic(textToEncrypt: String, onSuccess: (String) -> Unit) {
-        val uppercaseText = textToEncrypt.uppercase()
+        var uppercaseText = textToEncrypt.uppercase()
+        uppercaseText = uppercaseText.replace(" ", "")
         val encryptedText = StringBuilder() //StringBuilder() służy do tworzenia i manipulowania
         // łańcuchem znaków, zwykłe stringi są niemutowalne, dlatego jest użyta klasa StringBuilder
         val key = mapOf(
@@ -52,11 +57,47 @@ class MainScreenViewModel : ViewModel() {
             'Z' to 'B'
         )
 
-        for (char in uppercaseText){
+        for (char in uppercaseText) {
             encryptedText.append(key.getOrDefault(char, char))
             //append pozwala dodawać znaki lub ciąg znaków do końca StringBuildera, czyli encryptedText
             //getOrDefault pobiera wartość dla danej litery z mapy key, jeżeli istnieje
         }
+        onSuccess(encryptedText.toString())
+    }
+
+    private fun encryptTransposition(textToEncrypt: String, onSuccess: (String) -> Unit) {
+        //szyfr macierzowy
+        var uppercaseText = textToEncrypt.uppercase()
+        uppercaseText = uppercaseText.replace(" ", "")
+        val textLength = uppercaseText.length
+        val rows = 3
+        var columns = textLength / rows
+        var textIndex = 0
+        val encryptedText = StringBuilder()
+
+        if (textLength % rows != 0) {
+            columns += 1
+        }
+
+        val array = Array(rows) { CharArray(columns) } //charArray - tablica dla znaków, stworzenie macierzy
+
+        for (i in 0 until rows) {
+            for (j in 0 until columns) {
+                if (textIndex < textLength) {
+                    array[i][j] = uppercaseText[textIndex]
+                    textIndex ++
+                } else {
+                    array[i][j] = 'X'    //jeżeli jest puste miejsce to na jego miejscu jest X
+                }
+            }
+        }
+
+        for (j in 0 until columns){   // odczytujemy kolumnowo
+            for (i in 0 until rows) {
+                encryptedText.append(array[i][j])
+            }
+        }
+
         onSuccess(encryptedText.toString())
     }
 }
