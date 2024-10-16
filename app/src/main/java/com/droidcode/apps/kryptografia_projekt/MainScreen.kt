@@ -49,8 +49,9 @@ fun MainScreen(modifier: Modifier) {
 @Composable
 fun View(modifier: Modifier, viewModel: MainScreenViewModel) {
     var inputText by remember { mutableStateOf("") }
-    var encryptionType by remember { mutableStateOf(EncryptType.Monoalphabetic) }
-    var encryptionTypeText by remember { mutableStateOf("Monoalfabetyczne") }
+    var keyText by remember { mutableStateOf("") }
+    var encryptionType by remember { mutableStateOf(EncryptType.Polyalphabetic) }
+    var encryptionTypeText by remember { mutableStateOf("Polialfabetyczne") }
     val showAlertDialog = remember { mutableStateOf(false) }
     val encryptedText by remember { mutableStateOf(viewModel.encryptedText) }
 
@@ -61,7 +62,7 @@ fun View(modifier: Modifier, viewModel: MainScreenViewModel) {
     ) { uri: Uri? ->
         uri?.let {
             selectedFileUri = it
-            readFileContent(uri, context){ readText ->
+            readFileContent(uri, context) { readText ->
                 inputText = readText
             }
         }
@@ -111,6 +112,18 @@ fun View(modifier: Modifier, viewModel: MainScreenViewModel) {
             }
         )
 
+        if (encryptionType == EncryptType.Polyalphabetic) {
+            TextField(
+                value = keyText,
+                onValueChange = { keyText = it },
+                modifier.fillMaxWidth(),
+                label = {
+                    Text(stringResource(R.string.type_key))
+                },
+                isError = keyText.isEmpty()
+            )
+        }
+
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -125,7 +138,14 @@ fun View(modifier: Modifier, viewModel: MainScreenViewModel) {
 
             Button(
                 onClick = {
-                    viewModel.encryptText(inputText, encryptionType)
+                    if (encryptionType == EncryptType.Polyalphabetic) {
+                        if (keyText.isNotEmpty()) {
+                            viewModel.encryptText(inputText, keyText, encryptionType)
+                        }
+                    } else {
+                        viewModel.encryptText(inputText, keyText, encryptionType)
+                    }
+
                 },
             ) {
                 Text(stringResource(R.string.encrypt))
@@ -146,7 +166,7 @@ fun SelectEncryptionType(
     onDismiss: (EncryptType, String) -> Unit
 ) {
     val encryptTypes = arrayOf(
-        "Monoalfabetyczne",
+        "Polialfabetyczne",
         "Przestawieniowe"
     )
     AlertDialog(onDismissRequest = { showAlertDialog.value = false },
@@ -161,7 +181,7 @@ fun SelectEncryptionType(
                             .clickable {
                                 when (encryptType) {
                                     encryptTypes[0] -> {
-                                        onDismiss(EncryptType.Monoalphabetic, encryptType)
+                                        onDismiss(EncryptType.Polyalphabetic, encryptType)
                                     }
 
                                     encryptTypes[1] -> {
@@ -189,7 +209,7 @@ fun SelectEncryptionType(
     )
 }
 
-private fun readFileContent(uri: Uri, context: Context, onSuccess: (String)-> Unit) {
+private fun readFileContent(uri: Uri, context: Context, onSuccess: (String) -> Unit) {
     try {
         val selectedFile = context.contentResolver.openInputStream(uri)
         val reader = BufferedReader(InputStreamReader(selectedFile))

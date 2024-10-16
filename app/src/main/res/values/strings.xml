@@ -7,4 +7,5 @@
     <string name="select_encryption">Wybierz rodzaj szyfrowania</string>
     <string name="dialog_negative">Anuluj</string>
     <string name="select_file">Wybierz plik</string>
+    <string name="type_key">Wprowadź klucz</string>
 </resources>
