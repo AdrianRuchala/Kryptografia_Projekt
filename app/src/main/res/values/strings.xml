@@ -8,4 +8,7 @@
     <string name="dialog_negative">Anuluj</string>
     <string name="select_file">Wybierz plik</string>
     <string name="type_key">Wprowadź klucz</string>
+    <string name="decipher">Rozszyfruj</string>
+    <string name="encrypt_app">Aplikacja szyfrująca</string>
+    <string name="decipher_text">Rozszyfrowany tekst:</string>
 </resources>

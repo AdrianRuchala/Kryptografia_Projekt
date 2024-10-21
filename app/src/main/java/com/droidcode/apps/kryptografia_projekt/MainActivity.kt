@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.rememberNavController
 import com.droidcode.apps.kryptografia_projekt.ui.theme.Kryptografia_ProjektTheme
 
 class MainActivity : ComponentActivity() {
@@ -15,9 +16,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val navController = rememberNavController()
+
             Kryptografia_ProjektTheme {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    MainScreen(Modifier)
+                    MainScreen(Modifier, navController)
                 }
             }
         }
