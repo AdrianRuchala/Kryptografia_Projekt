@@ -55,37 +55,31 @@ class MainScreenViewModel : ViewModel() {
     }
 
     private fun encryptTransposition(textToEncrypt: String, onSuccess: (String) -> Unit) {
-        //szyfr macierzowy
+        //szyfr ścieżkowy, odczytywany spiralowo
         var uppercaseText = textToEncrypt.uppercase()
         uppercaseText = uppercaseText.replace(" ", "")
         val textLength = uppercaseText.length
-        val rows = 3
-        var columns = textLength / rows
-        var textIndex = 0
+        val key = 3
         val encryptedText = StringBuilder()
 
-        if (textLength % rows != 0) {
-            columns += 1
+        val rail =
+            Array(key) { StringBuilder() } //stworzenie listy wierszy, tak aby każdy string był StringBuilderem()
+
+        var row = 0
+        var direction = 1 //ustawienie kierunku na jeden aby szyfr się przemieszczał w górę lub w dół
+
+        for (i in 0 until textLength) { //wypełnianie macierzy
+            rail[row].append(uppercaseText[i]) //dodanie znaku do wiersza
+            if (row == 0) {
+                direction = 1
+            } else if (row == key - 1) {
+                direction = -1  //zmiana kierunku gdy jesteśmy na dole lub na górze
+            }
+            row += direction    //zmiana wiersza w zależności od kierunku
         }
 
-        val array =
-            Array(rows) { CharArray(columns) } //charArray - tablica dla znaków, stworzenie macierzy
-
-        for (i in 0 until rows) {
-            for (j in 0 until columns) {
-                if (textIndex < textLength) {
-                    array[i][j] = uppercaseText[textIndex]
-                    textIndex++
-                } else {
-                    array[i][j] = 'X'    //jeżeli jest puste miejsce to na jego miejscu jest X
-                }
-            }
-        }
-
-        for (j in 0 until columns) {   // odczytujemy kolumnowo
-            for (i in 0 until rows) {
-                encryptedText.append(array[i][j])
-            }
+        for (i in rail) {
+            encryptedText.append(i) //dodanie znaku to końcowego tekstu
         }
 
         onSuccess(encryptedText.toString())
