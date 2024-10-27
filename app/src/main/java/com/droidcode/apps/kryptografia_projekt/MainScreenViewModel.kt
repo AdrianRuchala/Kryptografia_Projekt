@@ -1,12 +1,21 @@
 package com.droidcode.apps.kryptografia_projekt
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import java.util.Base64
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.IvParameterSpec
+
 
 class MainScreenViewModel : ViewModel() {
 
     val encryptedText = mutableStateOf("")
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun encryptText(textToEncrypt: String, key: String, encryptType: EncryptType) {
         when (encryptType) {
             EncryptType.Polyalphabetic -> {
@@ -17,6 +26,30 @@ class MainScreenViewModel : ViewModel() {
 
             EncryptType.Transposition -> {
                 encryptTransposition(textToEncrypt) { newText ->
+                    encryptedText.value = newText
+                }
+            }
+
+            EncryptType.AES -> {
+                encryptAES(textToEncrypt.toByteArray()) { newText ->
+                    encryptedText.value = newText
+                }
+            }
+
+            EncryptType.DES -> {
+                encryptDES(textToEncrypt.toByteArray()) { newText ->
+                    encryptedText.value = newText
+                }
+            }
+
+            EncryptType.OFB -> {
+                encryptAES(textToEncrypt.toByteArray()) { newText ->
+                    encryptedText.value = newText
+                }
+            }
+
+            EncryptType.CFB -> {
+                encryptAES(textToEncrypt.toByteArray()) { newText ->
                     encryptedText.value = newText
                 }
             }
@@ -55,7 +88,7 @@ class MainScreenViewModel : ViewModel() {
     }
 
     private fun encryptTransposition(textToEncrypt: String, onSuccess: (String) -> Unit) {
-        //szyfr ścieżkowy, odczytywany spiralowo
+        //szyfr płotkowy
         var uppercaseText = textToEncrypt.uppercase()
         uppercaseText = uppercaseText.replace(" ", "")
         val textLength = uppercaseText.length
@@ -66,7 +99,8 @@ class MainScreenViewModel : ViewModel() {
             Array(key) { StringBuilder() } //stworzenie listy wierszy, tak aby każdy string był StringBuilderem()
 
         var row = 0
-        var direction = 1 //ustawienie kierunku na jeden aby szyfr się przemieszczał w górę lub w dół
+        var direction =
+            1 //ustawienie kierunku na jeden aby szyfr się przemieszczał w górę lub w dół
 
         for (i in 0 until textLength) { //wypełnianie macierzy
             rail[row].append(uppercaseText[i]) //dodanie znaku do wiersza
@@ -81,6 +115,44 @@ class MainScreenViewModel : ViewModel() {
         for (i in rail) {
             encryptedText.append(i) //dodanie znaku to końcowego tekstu
         }
+
+        onSuccess(encryptedText.toString())
+    }
+
+    fun generateAESKey(keySize: Int = 256): SecretKey {
+        val keyGenerator = KeyGenerator.getInstance("AES")
+        keyGenerator.init(keySize)
+        return keyGenerator.generateKey()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun encryptAES(textToEncrypt: ByteArray, onSuccess: (String) -> Unit) {
+        val key = generateAESKey()
+
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        val ivParameterSpec = IvParameterSpec(ByteArray(16)) // Use a secure IV in production
+        cipher.init(Cipher.ENCRYPT_MODE, key, ivParameterSpec)
+        val encryptResult = cipher.doFinal(textToEncrypt)
+        val encryptedText = Base64.getEncoder().encodeToString(encryptResult)
+
+        onSuccess(encryptedText.toString())
+    }
+
+    fun generateDESKey(keySize: Int = 64): SecretKey {
+        val keyGenerator = KeyGenerator.getInstance("DES")
+        keyGenerator.init(keySize)
+        return keyGenerator.generateKey()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun encryptDES(textToEncrypt: ByteArray, onSuccess: (String) -> Unit) {
+        val key = generateDESKey()
+
+        val cipher = Cipher.getInstance("DES/CBC/PKCS5Padding")
+        val ivParameterSpec = IvParameterSpec(ByteArray(8)) // Use a secure IV in production
+        cipher.init(Cipher.ENCRYPT_MODE, key, ivParameterSpec)
+        val encryptResult = cipher.doFinal(textToEncrypt)
+        val encryptedText = Base64.getEncoder().encodeToString(encryptResult)
 
         onSuccess(encryptedText.toString())
     }

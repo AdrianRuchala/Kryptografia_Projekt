@@ -1,5 +1,5 @@
 package com.droidcode.apps.kryptografia_projekt
 
 enum class EncryptType {
-    Polyalphabetic, Transposition
+    Polyalphabetic, Transposition, AES, DES, OFB, CFB
 }

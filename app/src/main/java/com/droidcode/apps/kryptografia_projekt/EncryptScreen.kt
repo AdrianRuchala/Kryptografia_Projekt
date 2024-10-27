@@ -3,9 +3,11 @@ package com.droidcode.apps.kryptografia_projekt
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("") }
@@ -193,7 +196,11 @@ fun SelectEncryptionType(
 ) {
     val encryptTypes = arrayOf(
         "Polialfabetyczne",
-        "Przestawieniowe"
+        "Przestawieniowe",
+        "AES",
+        "DES",
+        "OFB",
+        "CFB"
     )
     AlertDialog(onDismissRequest = { showAlertDialog.value = false },
         title = { Text(stringResource(R.string.select_encryption)) },
@@ -212,6 +219,22 @@ fun SelectEncryptionType(
 
                                     encryptTypes[1] -> {
                                         onDismiss(EncryptType.Transposition, encryptType)
+                                    }
+
+                                    encryptTypes[2] -> {
+                                        onDismiss(EncryptType.AES, encryptType)
+                                    }
+
+                                    encryptTypes[3] -> {
+                                        onDismiss(EncryptType.DES, encryptType)
+                                    }
+
+                                    encryptTypes[4] -> {
+                                        onDismiss(EncryptType.OFB, encryptType)
+                                    }
+
+                                    encryptTypes[5] -> {
+                                        onDismiss(EncryptType.CFB, encryptType)
                                     }
 
                                 }

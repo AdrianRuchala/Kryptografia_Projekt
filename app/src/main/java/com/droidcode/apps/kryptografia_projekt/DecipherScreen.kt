@@ -141,10 +141,10 @@ fun DecipherScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigat
                 onClick = {
                     if (decipherType == EncryptType.Polyalphabetic) {
                         if (keyText.isNotEmpty()) {
-                            viewModel.encryptText(inputText, keyText, decipherType)
+//                            viewModel.encryptText(inputText, keyText, decipherType)
                         }
                     } else {
-                        viewModel.encryptText(inputText, keyText, decipherType)
+//                        viewModel.encryptText(inputText, keyText, decipherType)
                     }
 
                 },
