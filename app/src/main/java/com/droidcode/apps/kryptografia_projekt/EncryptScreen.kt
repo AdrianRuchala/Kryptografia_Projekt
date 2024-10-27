@@ -1,10 +1,8 @@
 package com.droidcode.apps.kryptografia_projekt
 
-import android.content.ContentValues.TAG
-import android.content.Context
 import android.net.Uri
 import android.os.Build
-import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -38,8 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import androidx.core.content.ContextCompat.getString
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -58,8 +55,14 @@ fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigate
     ) { uri: Uri? ->
         uri?.let {
             selectedFileUri = it
-            readFileContent(uri, context) { readText ->
-                inputText = readText
+            if (keyText.isNotEmpty()) {
+                viewModel.encryptFile(uri, keyText, encryptionType, context)
+            } else {
+                Toast.makeText(
+                    context,
+                    getString(context, R.string.empty_key_error),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
@@ -134,17 +137,21 @@ fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigate
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Button(
-                onClick = {
-                    filePicker.launch(arrayOf("text/plain")) //wyświetlą się tylko pliki tekstowe
+            if(encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition){
+                Button(
+                    onClick = {
+                        filePicker.launch(arrayOf("*/*"))
+                    }
+                ) {
+                    Text(stringResource(R.string.select_file))
                 }
-            ) {
-                Text(stringResource(R.string.select_file))
+            } else {
+                Spacer(modifier)
             }
 
             Button(
                 onClick = {
-                    if (encryptionType == EncryptType.Polyalphabetic || encryptionType == EncryptType.AES) {
+                    if (encryptionType != EncryptType.Transposition) {
                         if (keyText.isNotEmpty()) {
                             viewModel.encryptText(inputText, keyText, encryptionType)
                         }
@@ -165,7 +172,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigate
 }
 
 @Composable
-fun TopBar(modifier: Modifier, onNavigateBack: () -> Unit){
+fun TopBar(modifier: Modifier, onNavigateBack: () -> Unit) {
     Row(
         modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -255,15 +262,4 @@ fun SelectEncryptionType(
             }
         }
     )
-}
-
-private fun readFileContent(uri: Uri, context: Context, onSuccess: (String) -> Unit) {
-    try {
-        val selectedFile = context.contentResolver.openInputStream(uri)
-        val reader = BufferedReader(InputStreamReader(selectedFile))
-        val readText = reader.readText()
-        onSuccess(readText)
-    } catch (e: Exception) {
-        Log.d(TAG, e.message.toString())
-    }
 }

@@ -1,9 +1,20 @@
 package com.droidcode.apps.kryptografia_projekt
 
+import android.content.ContentValues
+import android.content.Context
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.content.ContextCompat.getString
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.io.InputStream
+import java.io.OutputStream
 import java.security.MessageDigest
 import java.util.Base64
 import javax.crypto.Cipher
@@ -51,6 +62,48 @@ class MainScreenViewModel : ViewModel() {
             EncryptType.CFB -> {
                 encryptCFB(textToEncrypt.toByteArray(), key) { newText ->
                     encryptedText.value = newText
+                }
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun encryptFile(uri: Uri, key: String, encryptType: EncryptType, context: Context) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+            val fileBytes = inputStream?.readBytes() ?: return@launch
+
+            when (encryptType) {
+                EncryptType.Polyalphabetic -> {}
+
+                EncryptType.Transposition -> {}
+
+                EncryptType.AES -> {
+                    encryptAES(fileBytes, key) { newText ->
+                        saveEncryptedFile(newText.toByteArray(), context)
+                        encryptedText.value = getString(context, R.string.file_saved)
+                    }
+                }
+
+                EncryptType.DES -> {
+                    encryptDES(fileBytes, key) { newText ->
+                        saveEncryptedFile(newText.toByteArray(), context)
+                        encryptedText.value = getString(context, R.string.file_saved)
+                    }
+                }
+
+                EncryptType.OFB -> {
+                    encryptOFB(fileBytes, key) { newText ->
+                        saveEncryptedFile(newText.toByteArray(), context)
+                        encryptedText.value = getString(context, R.string.file_saved)
+                    }
+                }
+
+                EncryptType.CFB -> {
+                    encryptCFB(fileBytes, key) { newText ->
+                        saveEncryptedFile(newText.toByteArray(), context)
+                        encryptedText.value = getString(context, R.string.file_saved)
+                    }
                 }
             }
         }
@@ -205,5 +258,24 @@ class MainScreenViewModel : ViewModel() {
         val encryptedText = Base64.getEncoder().encodeToString(encryptResult)
 
         onSuccess(encryptedText.toString())
+    }
+
+    private fun saveEncryptedFile(encryptedBytes: ByteArray, context: Context) {
+        val contentValues = ContentValues().apply { //stworzenie pliku txt
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "encrypted_file.txt") //ustawienie nazwy pliku
+            put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")    //ustawienie typu pliku
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS) // ustawienie folderu w którym ma być zapisany plik
+        }
+
+        val uri: Uri? = context.contentResolver.insert(
+            MediaStore.Files.getContentUri("external"),
+            contentValues   //pobieramy URI pliku aby potem zapisać w nim tekst
+        )
+
+        uri?.let {
+            context.contentResolver.openOutputStream(it).use { outputStream: OutputStream? ->
+                outputStream?.write(encryptedBytes) //wypełnienie pliku zaszyfrowanymi bitami
+            }
+        }
     }
 }
