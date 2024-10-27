@@ -155,7 +155,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigat
 
 
         Spacer(modifier = modifier.padding(4.dp))
-        Text(stringResource(R.string.decipher_text), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.deciphered_text), style = MaterialTheme.typography.titleMedium)
         Text(text = encryptedText.value)
     }
 }
