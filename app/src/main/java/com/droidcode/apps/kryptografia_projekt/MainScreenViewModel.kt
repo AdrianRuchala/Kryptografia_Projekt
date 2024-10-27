@@ -4,11 +4,11 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import java.security.MessageDigest
 import java.util.Base64
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 
 class MainScreenViewModel : ViewModel() {
@@ -31,25 +31,25 @@ class MainScreenViewModel : ViewModel() {
             }
 
             EncryptType.AES -> {
-                encryptAES(textToEncrypt.toByteArray()) { newText ->
+                encryptAES(textToEncrypt.toByteArray(), key) { newText ->
                     encryptedText.value = newText
                 }
             }
 
             EncryptType.DES -> {
-                encryptDES(textToEncrypt.toByteArray()) { newText ->
+                encryptDES(textToEncrypt.toByteArray(), key) { newText ->
                     encryptedText.value = newText
                 }
             }
 
             EncryptType.OFB -> {
-                encryptAES(textToEncrypt.toByteArray()) { newText ->
+                encryptOFB(textToEncrypt.toByteArray(), key) { newText ->
                     encryptedText.value = newText
                 }
             }
 
             EncryptType.CFB -> {
-                encryptAES(textToEncrypt.toByteArray()) { newText ->
+                encryptCFB(textToEncrypt.toByteArray(), key) { newText ->
                     encryptedText.value = newText
                 }
             }
@@ -119,38 +119,88 @@ class MainScreenViewModel : ViewModel() {
         onSuccess(encryptedText.toString())
     }
 
-    fun generateAESKey(keySize: Int = 256): SecretKey {
-        val keyGenerator = KeyGenerator.getInstance("AES")
-        keyGenerator.init(keySize)
-        return keyGenerator.generateKey()
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun encryptAES(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
+        //AES blokowy
+        val md = MessageDigest.getInstance("MD5") //stworzenie obiektu do generowania hashy
+        // w MD5 - 128 bitów
+
+        val keyBytes =
+            md.digest(key.toByteArray(Charsets.UTF_8)) //konwersja tekstu na tablice bajtów
+        val secretKey = SecretKeySpec(keyBytes, "AES") //stworzenie obiektu klucza dla algorytmu AES
+
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding") // stworzenie obiektu
+        //szyfrującego algorytmem AES w trybie CBC (blokowym) oraz wypełnienie PKCS5
+
+        val ivParameterSpec = IvParameterSpec(ByteArray(16)) // ustawienie wektora
+        // inicjalizującago na tablicę zer o długości 16 bajtów
+
+        cipher.init(
+            Cipher.ENCRYPT_MODE,
+            secretKey,
+            ivParameterSpec
+        ) // inicjalizacja obiektu w trybie szyfrowania, przy użyciu klucza oraz IV.
+
+        val encryptResult = cipher.doFinal(textToEncrypt) //szyfrowanie tekstu
+        val encryptedText =
+            Base64.getEncoder().encodeToString(encryptResult) //konwersja tekstu na string
+
+        onSuccess(encryptedText.toString())
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun encryptAES(textToEncrypt: ByteArray, onSuccess: (String) -> Unit) {
-        val key = generateAESKey()
+    private fun encryptDES(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
+        //DES blokowy
+        val md = MessageDigest.getInstance("MD5")
+        val keyBytes = md.digest(key.toByteArray(Charsets.UTF_8))
+        val cuttedKeyBytes = keyBytes.copyOf(8)
+        val secretKey = SecretKeySpec(cuttedKeyBytes, "DES")
 
-        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-        val ivParameterSpec = IvParameterSpec(ByteArray(16)) // Use a secure IV in production
-        cipher.init(Cipher.ENCRYPT_MODE, key, ivParameterSpec)
+        val cipher = Cipher.getInstance("DES/CBC/PKCS5Padding") // stworzenie obiektu
+        //szyfrującego algorytmem DES w trybie CBC (blokowym) oraz wypełnienie PKCS5
+
+        val ivParameterSpec = IvParameterSpec(ByteArray(8)) // ustawienie wektora
+        // inicjalizującago na tablicę zer o długości 8 bajtów
+
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParameterSpec)
         val encryptResult = cipher.doFinal(textToEncrypt)
         val encryptedText = Base64.getEncoder().encodeToString(encryptResult)
 
         onSuccess(encryptedText.toString())
     }
 
-    fun generateDESKey(keySize: Int = 64): SecretKey {
-        val keyGenerator = KeyGenerator.getInstance("DES")
-        keyGenerator.init(keySize)
-        return keyGenerator.generateKey()
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun encryptOFB(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
+        //DES strumieniowy
+        val md = MessageDigest.getInstance("MD5")
+        val keyBytes = md.digest(key.toByteArray(Charsets.UTF_8))
+        val cuttedKeyBytes = keyBytes.copyOf(8)
+        val secretKey = SecretKeySpec(cuttedKeyBytes, "DES")
+
+        val cipher = Cipher.getInstance("DES/OFB/PKCS5Padding") // stworzenie obiektu
+        //szyfrującego algorytmem DES w trybie OFB (strumieniowym) oraz wypełnienie PKCS5
+
+        val ivParameterSpec = IvParameterSpec(ByteArray(8))
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParameterSpec)
+        val encryptResult = cipher.doFinal(textToEncrypt)
+        val encryptedText = Base64.getEncoder().encodeToString(encryptResult)
+
+        onSuccess(encryptedText.toString())
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun encryptDES(textToEncrypt: ByteArray, onSuccess: (String) -> Unit) {
-        val key = generateDESKey()
+    private fun encryptCFB(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
+        //AES strumieniowy
+        val md = MessageDigest.getInstance("MD5")
+        val keyBytes = md.digest(key.toByteArray(Charsets.UTF_8))
+        val secretKey = SecretKeySpec(keyBytes, "AES")
 
-        val cipher = Cipher.getInstance("DES/CBC/PKCS5Padding")
-        val ivParameterSpec = IvParameterSpec(ByteArray(8)) // Use a secure IV in production
-        cipher.init(Cipher.ENCRYPT_MODE, key, ivParameterSpec)
+        val cipher = Cipher.getInstance("AES/CFB/PKCS5Padding") // stworzenie obiektu
+        //szyfrującego algorytmem AES w trybie CFB (strumieniowym) oraz wypełnienie PKCS5
+
+        val ivParameterSpec = IvParameterSpec(ByteArray(16))
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParameterSpec)
         val encryptResult = cipher.doFinal(textToEncrypt)
         val encryptedText = Base64.getEncoder().encodeToString(encryptResult)
 

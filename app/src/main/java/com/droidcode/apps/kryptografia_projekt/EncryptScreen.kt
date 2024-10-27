@@ -114,7 +114,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigate
             }
         )
 
-        if (encryptionType == EncryptType.Polyalphabetic) {
+        if (encryptionType != EncryptType.Transposition) {
             TextField(
                 value = keyText,
                 onValueChange = { keyText = it },
@@ -144,14 +144,13 @@ fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigate
 
             Button(
                 onClick = {
-                    if (encryptionType == EncryptType.Polyalphabetic) {
+                    if (encryptionType == EncryptType.Polyalphabetic || encryptionType == EncryptType.AES) {
                         if (keyText.isNotEmpty()) {
                             viewModel.encryptText(inputText, keyText, encryptionType)
                         }
                     } else {
                         viewModel.encryptText(inputText, keyText, encryptionType)
                     }
-
                 },
             ) {
                 Text(stringResource(R.string.encrypt))
