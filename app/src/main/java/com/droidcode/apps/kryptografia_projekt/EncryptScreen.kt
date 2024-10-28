@@ -203,10 +203,10 @@ fun SelectEncryptionType(
     val encryptTypes = arrayOf(
         "Polialfabetyczne",
         "Przestawieniowe",
-        "AES",
-        "DES",
-        "OFB",
-        "CFB"
+        "AES/CBC",
+        "DES/CBC",
+        "DES/OFB",
+        "AES/CFB"
     )
     AlertDialog(onDismissRequest = { showAlertDialog.value = false },
         title = { Text(stringResource(R.string.select_encryption)) },
