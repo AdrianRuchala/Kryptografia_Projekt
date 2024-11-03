@@ -3,9 +3,11 @@ package com.droidcode.apps.kryptografia_projekt
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,14 +39,15 @@ import androidx.compose.ui.unit.dp
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DecipherScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigateBack: () -> Unit){
+fun DecipherScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("") }
     var keyText by remember { mutableStateOf("") }
     var decipherType by remember { mutableStateOf(EncryptType.Polyalphabetic) }
     var decipherTypeText by remember { mutableStateOf("Polialfabetyczne") }
     val showAlertDialog = remember { mutableStateOf(false) }
-    val encryptedText by remember { mutableStateOf(viewModel.encryptedText) }
+    val decipheredText by remember { mutableStateOf(viewModel.decipheredText) }
 
     val context = LocalContext.current
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
@@ -109,7 +112,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigat
             }
         )
 
-        if (decipherType == EncryptType.Polyalphabetic) {
+        if (decipherType != EncryptType.Transposition) {
             TextField(
                 value = keyText,
                 onValueChange = { keyText = it },
@@ -131,22 +134,21 @@ fun DecipherScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigat
         ) {
             Button(
                 onClick = {
-                    filePicker.launch(arrayOf("text/plain")) //wyświetlą się tylko pliki tekstowe
+                    filePicker.launch(arrayOf("text/plain"))
                 }
             ) {
-                Text(stringResource(R.string.select_file))
+                Text(stringResource(R.string.read_from_file))
             }
 
             Button(
                 onClick = {
-                    if (decipherType == EncryptType.Polyalphabetic) {
+                    if (decipherType != EncryptType.Transposition) {
                         if (keyText.isNotEmpty()) {
-//                            viewModel.encryptText(inputText, keyText, decipherType)
+                            viewModel.decipherText(inputText, keyText, decipherType)
                         }
                     } else {
-//                        viewModel.encryptText(inputText, keyText, decipherType)
+                        viewModel.decipherText(inputText, keyText, decipherType)
                     }
-
                 },
             ) {
                 Text(stringResource(R.string.decipher))
@@ -156,12 +158,12 @@ fun DecipherScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigat
 
         Spacer(modifier = modifier.padding(4.dp))
         Text(stringResource(R.string.deciphered_text), style = MaterialTheme.typography.titleMedium)
-        Text(text = encryptedText.value)
+        Text(text = decipheredText.value)
     }
 }
 
 @Composable
-fun DecipherTopBar(modifier: Modifier, onNavigateBack: () -> Unit){
+fun DecipherTopBar(modifier: Modifier, onNavigateBack: () -> Unit) {
     Row(
         modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -182,7 +184,6 @@ fun DecipherTopBar(modifier: Modifier, onNavigateBack: () -> Unit){
 
     HorizontalDivider(modifier.padding(vertical = 8.dp))
 }
-
 
 private fun readFileContent(uri: Uri, context: Context, onSuccess: (String) -> Unit) {
     try {

@@ -13,4 +13,5 @@
     <string name="deciphered_text">Rozszyfrowany tekst:</string>
     <string name="empty_key_error">Brak klucza. Wprowadź klucz i wybierz ponownie plik.</string>
     <string name="file_saved">Zaszyfrowany plik został zapisany!</string>
+    <string name="read_from_file">Wczytaj tekst z pliku</string>
 </resources>
