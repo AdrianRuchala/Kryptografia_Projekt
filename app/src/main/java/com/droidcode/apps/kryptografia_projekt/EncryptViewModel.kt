@@ -15,7 +15,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.InputStream
 import java.io.OutputStream
+import java.security.KeyFactory
 import java.security.MessageDigest
+import java.security.interfaces.RSAPublicKey
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
@@ -74,12 +76,18 @@ class EncryptViewModel : ViewModel() {
             }
 
             EncryptType.DiffieHellman -> {
-                DiffieHellmanKeyExchange(
+                diffieHellmanKeyExchange(
                     textToEncrypt.toLong(),
                     key.toLong(),
                     secretKey1.toLong(),
                     secretKey2.toLong()
                 ) { newText ->
+                    encryptedText.value = newText
+                }
+            }
+
+            EncryptType.RSA -> {
+                encryptRSA(textToEncrypt.toByteArray(), key) { newText ->
                     encryptedText.value = newText
                 }
             }
@@ -125,8 +133,13 @@ class EncryptViewModel : ViewModel() {
                     }
                 }
 
-                EncryptType.DiffieHellman -> {
+                EncryptType.DiffieHellman -> {}
 
+                EncryptType.RSA -> {
+                    encryptRSA(fileBytes, key) { newText ->
+                        saveEncryptedFile(newText.toByteArray(), context)
+                        encryptedText.value = getString(context, R.string.file_saved)
+                    }
                 }
             }
         }
@@ -283,7 +296,7 @@ class EncryptViewModel : ViewModel() {
         onSuccess(encryptedText.toString())
     }
 
-    private fun DiffieHellmanKeyExchange(
+    private fun diffieHellmanKeyExchange(
         primeNumber: Long,
         baseNumber: Long,
         privateKey1: Long,
@@ -328,6 +341,32 @@ class EncryptViewModel : ViewModel() {
         } catch (e: Exception) {
             onSuccess("Wprowadzony tekst nie jest liczbą pierwszą")
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun encryptRSA(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
+//        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+//        keyPairGenerator.initialize(2048)
+//        val publicKey = keyPairGenerator.generateKeyPair().public
+//        println(publicKey)
+
+        val keyBytes = Base64.getDecoder().decode(key)
+        val keyFactory = KeyFactory.getInstance("RSA")
+        val publicKey = keyFactory.generatePublic(java.security.spec.X509EncodedKeySpec(keyBytes)) as RSAPublicKey
+
+
+        // Inicjalizacja Cipher do szyfrowania za pomocą RSA
+        val cipher = Cipher.getInstance("RSA")
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
+
+        // Szyfrowanie danych
+        val encryptResult = cipher.doFinal(textToEncrypt)
+
+        // Konwersja wynikowego zaszyfrowanego tekstu do formatu Base64
+        val encryptedText = Base64.getEncoder().encodeToString(encryptResult)
+
+        // Wywołanie callbacku z wynikiem
+        onSuccess(encryptedText)
     }
 
     private fun saveEncryptedFile(encryptedBytes: ByteArray, context: Context) {

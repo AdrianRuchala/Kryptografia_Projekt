@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -37,6 +38,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.getString
+import java.security.KeyPairGenerator
+import java.util.Base64
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -79,101 +82,105 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
         }
     }
 
-    Column(
+    LazyColumn(
         modifier
             .fillMaxSize()
             .padding(all = 8.dp)
     ) {
-        TopBar(modifier) { onNavigateBack() }
+        item { TopBar(modifier) { onNavigateBack() } }
 
-        Row(
-            modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                stringResource(id = R.string.select_encryption_type),
-                modifier = modifier,
-                style = MaterialTheme.typography.titleMedium
-            )
-
+        item {
             Row(
-                modifier.clickable { showAlertDialog.value = true },
+                modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = encryptionTypeText)
-                Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = null)
+                Text(
+                    stringResource(id = R.string.select_encryption_type),
+                    modifier = modifier,
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Row(
+                    modifier.clickable { showAlertDialog.value = true },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = encryptionTypeText)
+                    Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = null)
+                }
             }
         }
 
-        TextField(
-            value = inputText,
-            onValueChange = { inputText = it },
-            modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            label = {
-                if (encryptionType == EncryptType.DiffieHellman) {
-                    Text(stringResource(R.string.prime_number))
-                } else {
-                    Text(stringResource(R.string.type_text))
-                }
-            }
-        )
-
-        if (encryptionType != EncryptType.Transposition) {
+        item {
             TextField(
-                value = keyText,
-                onValueChange = { keyText = it },
+                value = inputText,
+                onValueChange = { inputText = it },
                 modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
                 label = {
                     if (encryptionType == EncryptType.DiffieHellman) {
-                        Text(stringResource(R.string.base_number))
+                        Text(stringResource(R.string.prime_number))
                     } else {
-                        Text(stringResource(R.string.type_key))
+                        Text(stringResource(R.string.type_text))
                     }
-                },
-                isError = keyText.isEmpty()
+                }
             )
+
+            if (encryptionType != EncryptType.Transposition) {
+                TextField(
+                    value = keyText,
+                    onValueChange = { keyText = it },
+                    modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    label = {
+                        if (encryptionType == EncryptType.DiffieHellman) {
+                            Text(stringResource(R.string.base_number))
+                        } else {
+                            Text(stringResource(R.string.type_key))
+                        }
+                    },
+                    isError = keyText.isEmpty()
+                )
+            }
+
+            if (encryptionType == EncryptType.DiffieHellman) {
+                TextField(
+                    value = secretKeyText1,
+                    onValueChange = { secretKeyText1 = it },
+                    modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    label = {
+                        Text(stringResource(R.string.secret_key1))
+                    },
+                    isError = secretKeyText1.isEmpty()
+                )
+
+                TextField(
+                    value = secretKeyText2,
+                    onValueChange = { secretKeyText2 = it },
+                    modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    label = {
+                        Text(stringResource(R.string.secret_key2))
+                    },
+                    isError = secretKeyText2.isEmpty()
+                )
+            }
         }
 
-        if (encryptionType == EncryptType.DiffieHellman) {
-            TextField(
-                value = secretKeyText1,
-                onValueChange = { secretKeyText1 = it },
-                modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                label = {
-                    Text(stringResource(R.string.secret_key1))
-                },
-                isError = secretKeyText1.isEmpty()
-            )
-
-            TextField(
-                value = secretKeyText2,
-                onValueChange = { secretKeyText2 = it },
-                modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                label = {
-                    Text(stringResource(R.string.secret_key2))
-                },
-                isError = secretKeyText2.isEmpty()
-            )
-        }
-
-        Row(
+        item {Row(
             modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition) {
+            if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman) {
                 Button(
                     onClick = {
                         filePicker.launch(arrayOf("*/*"))
@@ -220,12 +227,24 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
             ) {
                 Text(stringResource(R.string.encrypt))
             }
+        } }
+
+
+        if (encryptionType == EncryptType.RSA) {
+            item { Button(onClick = {
+                generateKey { generatedKey ->
+                    keyText = generatedKey
+                }
+            }) {
+                Text("Generuj klucz")
+            } }
+
         }
 
+        item { Spacer(modifier = modifier.padding(4.dp)) }
+        item { Text(stringResource(R.string.encrypted_text), style = MaterialTheme.typography.titleMedium) }
+        item { Text(text = encryptedText.value) }
 
-        Spacer(modifier = modifier.padding(4.dp))
-        Text(stringResource(R.string.encrypted_text), style = MaterialTheme.typography.titleMedium)
-        Text(text = encryptedText.value)
     }
 }
 
@@ -265,7 +284,8 @@ fun SelectEncryptionType(
         "DES/CBC",
         "DES/OFB",
         "AES/CFB",
-        "Diffie-Hellman"
+        "Diffie-Hellman",
+        "RSA"
     )
     AlertDialog(onDismissRequest = { showAlertDialog.value = false },
         title = { Text(stringResource(R.string.select_encryption)) },
@@ -306,6 +326,10 @@ fun SelectEncryptionType(
                                         onDismiss(EncryptType.DiffieHellman, encryptType)
                                     }
 
+                                    encryptTypes[7] -> {
+                                        onDismiss(EncryptType.RSA, encryptType)
+                                    }
+
                                 }
                                 showAlertDialog.value = false
                             }
@@ -325,4 +349,12 @@ fun SelectEncryptionType(
             }
         }
     )
+}
+
+fun generateKey(onSuccess: (String) -> Unit) {
+    val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+    keyPairGenerator.initialize(2048)
+    val publicKey = keyPairGenerator.generateKeyPair().public
+    val publicKeyBase64 = Base64.getEncoder().encodeToString(publicKey.encoded)
+    onSuccess(publicKeyBase64)
 }

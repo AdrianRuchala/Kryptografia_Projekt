@@ -56,6 +56,10 @@ class DecipherViewModel : ViewModel() {
             EncryptType.DiffieHellman -> {
 
             }
+
+            EncryptType.RSA -> {
+
+            }
         }
     }
 
