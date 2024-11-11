@@ -40,9 +40,11 @@ import androidx.core.content.ContextCompat.getString
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
+fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("") }
     var keyText by remember { mutableStateOf("") }
+    var secretKeyText1 by remember { mutableStateOf("") }
+    var secretKeyText2 by remember { mutableStateOf("") }
     var encryptionType by remember { mutableStateOf(EncryptType.Polyalphabetic) }
     var encryptionTypeText by remember { mutableStateOf("Polialfabetyczne") }
     val showAlertDialog = remember { mutableStateOf(false) }
@@ -113,7 +115,11 @@ fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigate
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             label = {
-                Text(stringResource(R.string.type_text))
+                if (encryptionType == EncryptType.DiffieHellman) {
+                    Text(stringResource(R.string.prime_number))
+                } else {
+                    Text(stringResource(R.string.type_text))
+                }
             }
         )
 
@@ -125,9 +131,39 @@ fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigate
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
                 label = {
-                    Text(stringResource(R.string.type_key))
+                    if (encryptionType == EncryptType.DiffieHellman) {
+                        Text(stringResource(R.string.base_number))
+                    } else {
+                        Text(stringResource(R.string.type_key))
+                    }
                 },
                 isError = keyText.isEmpty()
+            )
+        }
+
+        if (encryptionType == EncryptType.DiffieHellman) {
+            TextField(
+                value = secretKeyText1,
+                onValueChange = { secretKeyText1 = it },
+                modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                label = {
+                    Text(stringResource(R.string.secret_key1))
+                },
+                isError = secretKeyText1.isEmpty()
+            )
+
+            TextField(
+                value = secretKeyText2,
+                onValueChange = { secretKeyText2 = it },
+                modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                label = {
+                    Text(stringResource(R.string.secret_key2))
+                },
+                isError = secretKeyText2.isEmpty()
             )
         }
 
@@ -137,7 +173,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigate
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            if(encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition){
+            if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition) {
                 Button(
                     onClick = {
                         filePicker.launch(arrayOf("*/*"))
@@ -151,12 +187,34 @@ fun EncryptScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigate
 
             Button(
                 onClick = {
-                    if (encryptionType != EncryptType.Transposition) {
+                    if (encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman) {
                         if (keyText.isNotEmpty()) {
-                            viewModel.encryptText(inputText, keyText, encryptionType)
+                            viewModel.encryptText(
+                                inputText,
+                                keyText,
+                                secretKeyText1,
+                                secretKeyText2,
+                                encryptionType
+                            )
+                        }
+                    } else if (encryptionType == EncryptType.DiffieHellman) {
+                        if (keyText.isNotEmpty() && secretKeyText1.isNotEmpty() && secretKeyText2.isNotEmpty()) {
+                            viewModel.encryptText(
+                                inputText,
+                                keyText,
+                                secretKeyText1,
+                                secretKeyText2,
+                                encryptionType
+                            )
                         }
                     } else {
-                        viewModel.encryptText(inputText, keyText, encryptionType)
+                        viewModel.encryptText(
+                            inputText,
+                            keyText,
+                            secretKeyText1,
+                            secretKeyText2,
+                            encryptionType
+                        )
                     }
                 },
             ) {
@@ -206,7 +264,8 @@ fun SelectEncryptionType(
         "AES/CBC",
         "DES/CBC",
         "DES/OFB",
-        "AES/CFB"
+        "AES/CFB",
+        "Diffie-Hellman"
     )
     AlertDialog(onDismissRequest = { showAlertDialog.value = false },
         title = { Text(stringResource(R.string.select_encryption)) },
@@ -241,6 +300,10 @@ fun SelectEncryptionType(
 
                                     encryptTypes[5] -> {
                                         onDismiss(EncryptType.CFB, encryptType)
+                                    }
+
+                                    encryptTypes[6] -> {
+                                        onDismiss(EncryptType.DiffieHellman, encryptType)
                                     }
 
                                 }

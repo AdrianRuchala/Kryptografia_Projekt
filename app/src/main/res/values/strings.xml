@@ -14,4 +14,8 @@
     <string name="empty_key_error">Brak klucza. Wprowadź klucz i wybierz ponownie plik.</string>
     <string name="file_saved">Zaszyfrowany plik został zapisany!</string>
     <string name="read_from_file">Wczytaj tekst z pliku</string>
+    <string name="prime_number">Wprowadź liczbę pierwszą</string>
+    <string name="secret_key1">Tajny klucz pierwszej osoby</string>
+    <string name="secret_key2">Tajny klucz drugiej osoby</string>
+    <string name="base_number">Podstawa</string>
 </resources>

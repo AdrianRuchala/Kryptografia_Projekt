@@ -11,7 +11,8 @@ import androidx.navigation.compose.composable
 
 @Composable
 fun AppNavHost(modifier: Modifier, navController: NavHostController) {
-    val viewModel = MainScreenViewModel()
+    val encryptViewModel = EncryptViewModel()
+    val decipherViewModel = DecipherViewModel()
 
     NavHost(
         navController = navController,
@@ -27,11 +28,11 @@ fun AppNavHost(modifier: Modifier, navController: NavHostController) {
         }
 
         composable(Encrypt.route) {
-            EncryptScreen(Modifier, viewModel) { navController.navigateUp() }
+            EncryptScreen(Modifier, encryptViewModel) { navController.navigateUp() }
         }
 
         composable(Decipher.route) {
-            DecipherScreen(Modifier, viewModel) { navController.navigateUp() }
+            DecipherScreen(Modifier, decipherViewModel) { navController.navigateUp() }
         }
     }
 }

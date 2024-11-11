@@ -41,7 +41,7 @@ import java.io.InputStreamReader
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DecipherScreen(modifier: Modifier, viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
+fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("") }
     var keyText by remember { mutableStateOf("") }
     var decipherType by remember { mutableStateOf(EncryptType.Polyalphabetic) }
