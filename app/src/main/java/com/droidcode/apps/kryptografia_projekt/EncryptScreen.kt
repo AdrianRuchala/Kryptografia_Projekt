@@ -236,7 +236,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
                     keyText = generatedKey
                 }
             }) {
-                Text("Generuj klucz")
+                Text(stringResource(R.string.generate_key))
             } }
 
         }

@@ -345,27 +345,18 @@ class EncryptViewModel : ViewModel() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun encryptRSA(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
-//        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
-//        keyPairGenerator.initialize(2048)
-//        val publicKey = keyPairGenerator.generateKeyPair().public
-//        println(publicKey)
-
-        val keyBytes = Base64.getDecoder().decode(key)
-        val keyFactory = KeyFactory.getInstance("RSA")
+        val keyBytes = Base64.getDecoder().decode(key)  //dekodowanie klucza
+        val keyFactory = KeyFactory.getInstance("RSA")  //stworzenie instacji do generowania klucza dla algorytmu RSA
         val publicKey = keyFactory.generatePublic(java.security.spec.X509EncodedKeySpec(keyBytes)) as RSAPublicKey
+        //generowanie klucza publicznego z wcześniej dekodowanego klucza
 
-
-        // Inicjalizacja Cipher do szyfrowania za pomocą RSA
         val cipher = Cipher.getInstance("RSA")
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey) //inicjalizacja szyfrowania
 
-        // Szyfrowanie danych
-        val encryptResult = cipher.doFinal(textToEncrypt)
+        val encryptResult = cipher.doFinal(textToEncrypt)   //szyfrowanie danych wejsciowych
 
-        // Konwersja wynikowego zaszyfrowanego tekstu do formatu Base64
         val encryptedText = Base64.getEncoder().encodeToString(encryptResult)
 
-        // Wywołanie callbacku z wynikiem
         onSuccess(encryptedText)
     }
 
