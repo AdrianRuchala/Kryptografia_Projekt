@@ -19,4 +19,5 @@
     <string name="secret_key2">Tajny klucz drugiej osoby</string>
     <string name="base_number">Podstawa</string>
     <string name="generate_key">Wygeneruj klucz</string>
+    <string name="type_public_key">Wprowadź klucz publiczny</string>
 </resources>

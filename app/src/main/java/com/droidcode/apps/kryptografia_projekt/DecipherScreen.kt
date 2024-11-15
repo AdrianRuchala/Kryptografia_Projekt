@@ -10,13 +10,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -44,6 +44,7 @@ import java.io.InputStreamReader
 fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("") }
     var keyText by remember { mutableStateOf("") }
+    var publicKeyText by remember { mutableStateOf("") }
     var decipherType by remember { mutableStateOf(EncryptType.Polyalphabetic) }
     var decipherTypeText by remember { mutableStateOf("Polialfabetyczne") }
     val showAlertDialog = remember { mutableStateOf(false) }
@@ -72,93 +73,142 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateB
         }
     }
 
-    Column(
+    LazyColumn(
         modifier
             .fillMaxSize()
             .padding(all = 8.dp)
     ) {
-        DecipherTopBar(modifier) { onNavigateBack() }
+        item { DecipherTopBar(modifier) { onNavigateBack() } }
 
-        Row(
-            modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                stringResource(id = R.string.select_encryption_type),
-                modifier = modifier,
-                style = MaterialTheme.typography.titleMedium
-            )
-
+        item {
             Row(
-                modifier.clickable { showAlertDialog.value = true },
+                modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = decipherTypeText)
-                Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = null)
+                Text(
+                    stringResource(id = R.string.select_encryption_type),
+                    modifier = modifier,
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Row(
+                    modifier.clickable { showAlertDialog.value = true },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = decipherTypeText)
+                    Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = null)
+                }
             }
         }
 
-        TextField(
-            value = inputText,
-            onValueChange = { inputText = it },
-            modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            label = {
-                Text(stringResource(R.string.type_text))
-            }
-        )
-
-        if (decipherType != EncryptType.Transposition) {
+        item {
             TextField(
-                value = keyText,
-                onValueChange = { keyText = it },
+                value = inputText,
+                onValueChange = { inputText = it },
                 modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
                 label = {
-                    Text(stringResource(R.string.type_key))
-                },
-                isError = keyText.isEmpty()
+                    if (decipherType == EncryptType.DiffieHellman) {
+                        Text(stringResource(R.string.prime_number))
+                    } else {
+                        Text(stringResource(R.string.type_text))
+                    }
+                }
             )
+
+            if (decipherType != EncryptType.Transposition) {
+                TextField(
+                    value = keyText,
+                    onValueChange = { keyText = it },
+                    modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    label = {
+                        if (decipherType == EncryptType.DiffieHellman) {
+                            Text(stringResource(R.string.base_number))
+                        } else {
+                            Text(stringResource(R.string.type_key))
+                        }
+                    },
+                    isError = keyText.isEmpty()
+                )
+            }
+
+            if (decipherType == EncryptType.DiffieHellman) {
+                TextField(
+                    value = publicKeyText,
+                    onValueChange = { publicKeyText = it },
+                    modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    label = {
+                        Text(stringResource(R.string.type_public_key))
+                    },
+                    isError = publicKeyText.isEmpty()
+                )
+            }
         }
 
-        Row(
+        item {Row(
             modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Button(
-                onClick = {
-                    filePicker.launch(arrayOf("text/plain"))
+            if (decipherType != EncryptType.Polyalphabetic && decipherType != EncryptType.Transposition && decipherType != EncryptType.DiffieHellman) {
+                Button(
+                    onClick = {
+                        filePicker.launch(arrayOf("*/*"))
+                    }
+                ) {
+                    Text(stringResource(R.string.select_file))
                 }
-            ) {
-                Text(stringResource(R.string.read_from_file))
+            } else {
+                Spacer(modifier)
             }
 
             Button(
                 onClick = {
-                    if (decipherType != EncryptType.Transposition) {
+                    if (decipherType != EncryptType.Transposition && decipherType != EncryptType.DiffieHellman) {
                         if (keyText.isNotEmpty()) {
-                            viewModel.decipherText(inputText, keyText, decipherType)
+                            viewModel.decipherText(
+                                inputText,
+                                keyText,
+                                publicKeyText,
+                                decipherType
+                            )
+                        }
+                    } else if (decipherType == EncryptType.DiffieHellman) {
+                        if (keyText.isNotEmpty() && publicKeyText.isNotEmpty()) {
+                            viewModel.decipherText(
+                                inputText,
+                                keyText,
+                                publicKeyText,
+                                decipherType
+                            )
                         }
                     } else {
-                        viewModel.decipherText(inputText, keyText, decipherType)
+                        viewModel.decipherText(
+                            inputText,
+                            keyText,
+                            publicKeyText,
+                            decipherType
+                        )
                     }
                 },
             ) {
                 Text(stringResource(R.string.decipher))
             }
-        }
+        } }
 
+        item { Spacer(modifier = modifier.padding(4.dp)) }
+        item { Text(stringResource(R.string.deciphered_text), style = MaterialTheme.typography.titleMedium) }
+        item { Text(text = decipheredText.value) }
 
-        Spacer(modifier = modifier.padding(4.dp))
-        Text(stringResource(R.string.deciphered_text), style = MaterialTheme.typography.titleMedium)
-        Text(text = decipheredText.value)
     }
 }
 

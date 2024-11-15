@@ -345,31 +345,35 @@ class EncryptViewModel : ViewModel() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun encryptRSA(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
-        val keyBytes = Base64.getDecoder().decode(key) //dekodowanie klucza
-        val keyFactory = KeyFactory.getInstance("RSA") //stworzenie instacji do generowania klucza dla algorytmu RSA
-        val publicKey = keyFactory.generatePublic(java.security.spec.X509EncodedKeySpec(keyBytes)) as RSAPublicKey
-        //generowanie klucza publicznego z wcześniej dekodowanego klucza
+        try {
+            val keyBytes = Base64.getDecoder().decode(key) //dekodowanie klucza
+            val keyFactory = KeyFactory.getInstance("RSA") //stworzenie instacji do generowania klucza dla algorytmu RSA
+            val publicKey = keyFactory.generatePublic(java.security.spec.X509EncodedKeySpec(keyBytes)) as RSAPublicKey
+            //generowanie klucza publicznego z wcześniej dekodowanego klucza
 
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding") // stworzenie obiektu
-        //szyfrującego algorytmem RSA w trybie ECB oraz wypełnienie PKCS1
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey) //inicjalizacja szyfrowania
+            val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding") // stworzenie obiektu
+            //szyfrującego algorytmem RSA w trybie ECB oraz wypełnienie PKCS1
+            cipher.init(Cipher.ENCRYPT_MODE, publicKey) //inicjalizacja szyfrowania
 
-        val maxBlockSize = publicKey.modulus.bitLength() / 8 - 11 //obliczenie maksymalnego rozmiaru bloku
-        val encryptedData = mutableListOf<Byte>() //stworzenie listy przechowywującej zaszyfrowane dane
+            val maxBlockSize = publicKey.modulus.bitLength() / 8 - 11 //obliczenie maksymalnego rozmiaru bloku
+            val encryptedData = mutableListOf<Byte>() //stworzenie listy przechowywującej zaszyfrowane dane
 
-        var offset = 0
-        while (offset < textToEncrypt.size) {
-            val chunkSize = minOf(maxBlockSize, textToEncrypt.size - offset) //określenie rozmiaru aktualnego bloku
-            val chunk = textToEncrypt.copyOfRange(offset, offset + chunkSize) // kopiowanie danych z danego fragmentu
-            val encryptedChunk = cipher.doFinal(chunk) //szyfrowanie danego bloku danych
-            encryptedData.addAll(encryptedChunk.toList()) //dodanie bloku do listy
-            offset += chunkSize //przesuniecie offsetu do kolejnego bloku danych
+            var offset = 0
+            while (offset < textToEncrypt.size) {
+                val chunkSize = minOf(maxBlockSize, textToEncrypt.size - offset) //określenie rozmiaru aktualnego bloku
+                val chunk = textToEncrypt.copyOfRange(offset, offset + chunkSize) // kopiowanie danych z danego fragmentu
+                val encryptedChunk = cipher.doFinal(chunk) //szyfrowanie danego bloku danych
+                encryptedData.addAll(encryptedChunk.toList()) //dodanie bloku do listy
+                offset += chunkSize //przesuniecie offsetu do kolejnego bloku danych
+            }
+
+            val encryptedText = Base64.getEncoder().encodeToString(encryptedData.toByteArray())
+            //złączenie wszysykich zaszyfrowanych danych
+
+            onSuccess(encryptedText)
+        } catch (e: Exception) {
+            onSuccess("Błąd szyfrowania")
         }
-
-        val encryptedText = Base64.getEncoder().encodeToString(encryptedData.toByteArray())
-        //złączenie wszysykich zaszyfrowanych danych
-
-        onSuccess(encryptedText)
     }
 
 

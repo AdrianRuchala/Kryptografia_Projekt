@@ -4,18 +4,27 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import java.security.KeyFactory
 import java.security.MessageDigest
+import java.security.interfaces.RSAPrivateKey
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 class DecipherViewModel : ViewModel() {
 
     val decipheredText = mutableStateOf("")
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun decipherText(textToDecipher: String, key: String, encryptType: EncryptType) {
+    fun decipherText(
+        textToDecipher: String,
+        key: String,
+        publicKey: String,
+        encryptType: EncryptType
+    ) {
         when (encryptType) {
             EncryptType.Polyalphabetic -> {
                 decipherPolyalphabetic(textToDecipher, key) { newText ->
@@ -54,11 +63,19 @@ class DecipherViewModel : ViewModel() {
             }
 
             EncryptType.DiffieHellman -> {
-
+                decipherDiffieHellman(
+                    textToDecipher.toLong(),
+                    key.toLong(),
+                    publicKey.toLong()
+                ) { newText ->
+                    decipheredText.value = newText
+                }
             }
 
             EncryptType.RSA -> {
-
+                decipherRSA(textToDecipher, key) { newText ->
+                    decipheredText.value = newText
+                }
             }
         }
     }
@@ -226,6 +243,75 @@ class DecipherViewModel : ViewModel() {
 
             onSuccess(decipheredText)
 
+        } catch (e: Exception) {
+            onSuccess("Błąd rozszyfrowania")
+        }
+    }
+
+    private fun decipherDiffieHellman(
+        primeNumber: Long,
+        baseNumber: Long,
+        publicKey: Long,
+        onSuccess: (String) -> Unit
+    ) {
+        try {
+            val typedNumber = primeNumber.toInt()
+            if (typedNumber < 2) {
+                onSuccess("Wprowadzona liczba nie jest liczbą pierwszą")
+                return
+            }
+            for (i in 2..sqrt(typedNumber.toDouble()).toInt()) {
+                if (typedNumber % i == 0) {
+                    onSuccess("Wprowadzona liczba nie jest liczbą pierwszą")
+                    return
+                }
+            }
+
+            var privateKey: Long? = null
+            for (possibleKey in 1 until primeNumber) {
+                val calculatedPublicKey =
+                    (baseNumber.toDouble().pow(possibleKey.toDouble()).toLong() % primeNumber)
+                if (calculatedPublicKey == publicKey) {
+                    privateKey = possibleKey
+                    break
+                }
+            }
+
+            if (privateKey != null) {
+                onSuccess("Sekretny klucz: $privateKey")
+            } else {
+                onSuccess("Błąd rozszyfrowania")
+            }
+        } catch (e: Exception) {
+            onSuccess("Błąd rozszyfrowania")
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun decipherRSA(encryptedText: String, key: String, onSuccess: (String) -> Unit) {
+        try {
+            val privateKeyBytes = Base64.getDecoder().decode(key)
+            val keyFactory = KeyFactory.getInstance("RSA")
+            val privateKey = keyFactory.generatePrivate(java.security.spec.PKCS8EncodedKeySpec(privateKeyBytes)) as RSAPrivateKey
+
+            val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+            cipher.init(Cipher.DECRYPT_MODE, privateKey)
+
+            val encryptedData = Base64.getDecoder().decode(encryptedText)
+            val maxBlockSize = privateKey.modulus.bitLength() / 8
+            val decryptedData = mutableListOf<Byte>()
+
+            var offset = 0
+            while (offset < encryptedData.size) {
+                val chunkSize = minOf(maxBlockSize, encryptedData.size - offset)
+                val chunk = encryptedData.copyOfRange(offset, offset + chunkSize)
+                val decryptedChunk = cipher.doFinal(chunk)
+                decryptedData.addAll(decryptedChunk.toList())
+                offset += chunkSize
+            }
+
+            val decryptedText = String(decryptedData.toByteArray(), Charsets.UTF_8)
+            onSuccess(decryptedText)
         } catch (e: Exception) {
             onSuccess("Błąd rozszyfrowania")
         }
