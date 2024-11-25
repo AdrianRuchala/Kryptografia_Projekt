@@ -129,7 +129,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
                 }
             )
 
-            if (encryptionType != EncryptType.Transposition) {
+            if (encryptionType != EncryptType.Transposition && encryptionType != EncryptType.CheckCertificate) {
                 TextField(
                     value = keyText,
                     onValueChange = { keyText = it },
@@ -180,7 +180,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman) {
+            if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman && encryptionType != EncryptType.CheckCertificate) {
                 Button(
                     onClick = {
                         filePicker.launch(arrayOf("*/*"))
@@ -194,7 +194,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
 
             Button(
                 onClick = {
-                    if (encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman) {
+                    if (encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman && encryptionType != EncryptType.CheckCertificate) {
                         if (keyText.isNotEmpty()) {
                             viewModel.encryptText(
                                 inputText,
@@ -225,7 +225,11 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
                     }
                 },
             ) {
-                Text(stringResource(R.string.encrypt))
+                if (encryptionType == EncryptType.CheckCertificate) {
+                    Text(stringResource(R.string.check_certificate))
+                } else {
+                    Text(stringResource(R.string.encrypt))
+                }
             }
         } }
 
@@ -242,7 +246,13 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
         }
 
         item { Spacer(modifier = modifier.padding(4.dp)) }
-        item { Text(stringResource(R.string.encrypted_text), style = MaterialTheme.typography.titleMedium) }
+        item {
+            if (encryptionType == EncryptType.CheckCertificate) {
+                Text(stringResource(R.string.certificate), style = MaterialTheme.typography.titleMedium)
+            } else {
+                Text(stringResource(R.string.encrypted_text), style = MaterialTheme.typography.titleMedium)
+            }
+        }
         item { Text(text = encryptedText.value) }
 
     }
@@ -285,7 +295,8 @@ fun SelectEncryptionType(
         "DES/OFB",
         "AES/CFB",
         "Diffie-Hellman",
-        "RSA"
+        "RSA",
+        "Sprawdź certyfikat"
     )
     AlertDialog(onDismissRequest = { showAlertDialog.value = false },
         title = { Text(stringResource(R.string.select_encryption)) },
@@ -328,6 +339,10 @@ fun SelectEncryptionType(
 
                                     encryptTypes[7] -> {
                                         onDismiss(EncryptType.RSA, encryptType)
+                                    }
+
+                                    encryptTypes[8] -> {
+                                        onDismiss(EncryptType.CheckCertificate, encryptType)
                                     }
 
                                 }

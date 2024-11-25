@@ -68,4 +68,5 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.navigation)
     implementation(libs.androidx.adaptive.navigation)
+    implementation(libs.okhttp3)
 }

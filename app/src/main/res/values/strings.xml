@@ -20,4 +20,7 @@
     <string name="base_number">Podstawa</string>
     <string name="generate_key">Wygeneruj klucz</string>
     <string name="type_public_key">Wprowadź klucz publiczny</string>
+    <string name="check_certificate">Sprawdź cerytfikat</string>
+    <string name="type_url">Wprowadź adres strony</string>
+    <string name="certificate">Certyfikat:</string>
 </resources>

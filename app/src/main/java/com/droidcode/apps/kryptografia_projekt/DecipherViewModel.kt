@@ -77,6 +77,8 @@ class DecipherViewModel : ViewModel() {
                     decipheredText.value = newText
                 }
             }
+
+            EncryptType.CheckCertificate -> {}
         }
     }
 

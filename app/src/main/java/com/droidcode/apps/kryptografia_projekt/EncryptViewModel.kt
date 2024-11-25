@@ -10,9 +10,12 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat.getString
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.KeyFactory
@@ -24,6 +27,8 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.math.pow
 import kotlin.math.sqrt
+import java.security.cert.X509Certificate
+import okhttp3.Request
 
 
 class EncryptViewModel : ViewModel() {
@@ -91,6 +96,14 @@ class EncryptViewModel : ViewModel() {
                     encryptedText.value = newText
                 }
             }
+
+            EncryptType.CheckCertificate -> {
+                viewModelScope.launch {
+                    checkCertificate(textToEncrypt) { newText ->
+                        encryptedText.value = newText
+                    }
+                }
+            }
         }
     }
 
@@ -141,6 +154,8 @@ class EncryptViewModel : ViewModel() {
                         encryptedText.value = getString(context, R.string.file_saved)
                     }
                 }
+
+                EncryptType.CheckCertificate -> {}
             }
         }
     }
@@ -347,21 +362,31 @@ class EncryptViewModel : ViewModel() {
     private fun encryptRSA(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
         try {
             val keyBytes = Base64.getDecoder().decode(key) //dekodowanie klucza
-            val keyFactory = KeyFactory.getInstance("RSA") //stworzenie instacji do generowania klucza dla algorytmu RSA
-            val publicKey = keyFactory.generatePublic(java.security.spec.X509EncodedKeySpec(keyBytes)) as RSAPublicKey
+            val keyFactory =
+                KeyFactory.getInstance("RSA") //stworzenie instacji do generowania klucza dla algorytmu RSA
+            val publicKey =
+                keyFactory.generatePublic(java.security.spec.X509EncodedKeySpec(keyBytes)) as RSAPublicKey
             //generowanie klucza publicznego z wcześniej dekodowanego klucza
 
             val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding") // stworzenie obiektu
             //szyfrującego algorytmem RSA w trybie ECB oraz wypełnienie PKCS1
             cipher.init(Cipher.ENCRYPT_MODE, publicKey) //inicjalizacja szyfrowania
 
-            val maxBlockSize = publicKey.modulus.bitLength() / 8 - 11 //obliczenie maksymalnego rozmiaru bloku
-            val encryptedData = mutableListOf<Byte>() //stworzenie listy przechowywującej zaszyfrowane dane
+            val maxBlockSize =
+                publicKey.modulus.bitLength() / 8 - 11 //obliczenie maksymalnego rozmiaru bloku
+            val encryptedData =
+                mutableListOf<Byte>() //stworzenie listy przechowywującej zaszyfrowane dane
 
             var offset = 0
             while (offset < textToEncrypt.size) {
-                val chunkSize = minOf(maxBlockSize, textToEncrypt.size - offset) //określenie rozmiaru aktualnego bloku
-                val chunk = textToEncrypt.copyOfRange(offset, offset + chunkSize) // kopiowanie danych z danego fragmentu
+                val chunkSize = minOf(
+                    maxBlockSize,
+                    textToEncrypt.size - offset
+                ) //określenie rozmiaru aktualnego bloku
+                val chunk = textToEncrypt.copyOfRange(
+                    offset,
+                    offset + chunkSize
+                ) // kopiowanie danych z danego fragmentu
                 val encryptedChunk = cipher.doFinal(chunk) //szyfrowanie danego bloku danych
                 encryptedData.addAll(encryptedChunk.toList()) //dodanie bloku do listy
                 offset += chunkSize //przesuniecie offsetu do kolejnego bloku danych
@@ -376,11 +401,47 @@ class EncryptViewModel : ViewModel() {
         }
     }
 
+    private suspend fun checkCertificate(urlString: String, onSuccess: (String) -> Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient() //stowrzenie instacji klienta przy użyciu biblioteki OkHttp
+                val request = Request.Builder().url(urlString).build() //żadanie Http z przekazywanym adresem URL
+
+                try {
+                    val response = client.newCall(request).execute() //synchroniczne żadanie Http przy użyciu OkHttpClient
+
+                    val certificates = response.handshake?.peerCertificates ?: emptyList()
+                    //Pobiera certyfikaty SSL z HTTP
+
+                    for (certificate in certificates) { //iterujemy liste certyfikatów
+                        val cert = certificate as X509Certificate //rzutujemy obiekt certyfikatu na X509Certificate, który umożliwia odczytanie szczegółowych danych
+//                        onSuccess(
+//                            "Issuer: ${cert.issuerDN} \n" +
+//                                    "Subject: ${cert.subjectDN} \n" +
+//                                    "Valid From: ${cert.notBefore} \n" +
+//                                    "Valid To: ${cert.notAfter} \n"
+//                        )
+                        onSuccess("$cert")
+                    }
+                } catch (e: Exception) {
+                    onSuccess("Błąd analizy certyfikatu SSL")
+                }
+            } catch (e: Exception) {
+                onSuccess("Niepoprawny adres URL. Przykładowy adres URL: https://example.com")
+            }
+        }
+    }
 
     private fun saveEncryptedFile(encryptedBytes: ByteArray, context: Context) {
         val contentValues = ContentValues().apply { //stworzenie pliku txt
-            put(MediaStore.MediaColumns.DISPLAY_NAME, "encrypted_file.txt") //ustawienie nazwy pliku
-            put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")    //ustawienie typu pliku
+            put(
+                MediaStore.MediaColumns.DISPLAY_NAME,
+                "encrypted_file.enc"
+            ) //ustawienie nazwy pliku
+            put(
+                MediaStore.MediaColumns.MIME_TYPE,
+                "application/octet-stream"
+            )    //ustawienie typu pliku
             put(
                 MediaStore.MediaColumns.RELATIVE_PATH,
                 Environment.DIRECTORY_DOWNLOADS
