@@ -123,7 +123,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                 }
             )
 
-            if (decryptType != DecryptType.Transposition) {
+            if (decryptType != DecryptType.Transposition && decryptType != DecryptType.CheckCertificate) {
                 TextField(
                     value = keyText,
                     onValueChange = { keyText = it },
@@ -133,6 +133,8 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                     label = {
                         if (decryptType == DecryptType.DiffieHellman) {
                             Text(stringResource(R.string.base_number))
+                        } else if(decryptType == DecryptType.CheckSignature) {
+                            Text("Wprowadź zaszyfrowany podpis")
                         } else {
                             Text(stringResource(R.string.type_key))
                         }
@@ -141,7 +143,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                 )
             }
 
-            if (decryptType == DecryptType.DiffieHellman) {
+            if (decryptType == DecryptType.DiffieHellman || decryptType == DecryptType.CheckSignature) {
                 TextField(
                     value = publicKeyText,
                     onValueChange = { publicKeyText = it },
@@ -162,7 +164,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            if (decryptType != DecryptType.Polyalphabetic && decryptType != DecryptType.Transposition && decryptType != DecryptType.DiffieHellman) {
+            if (decryptType != DecryptType.Polyalphabetic && decryptType != DecryptType.Transposition && decryptType != DecryptType.DiffieHellman  && decryptType != DecryptType.CheckCertificate) {
                 Button(
                     onClick = {
                         filePicker.launch(arrayOf("*/*"))
@@ -176,7 +178,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
 
             Button(
                 onClick = {
-                    if (decryptType != DecryptType.Transposition && decryptType != DecryptType.DiffieHellman) {
+                    if (decryptType != DecryptType.Transposition && decryptType != DecryptType.DiffieHellman && decryptType != DecryptType.CheckCertificate) {
                         if (keyText.isNotEmpty()) {
                             viewModel.decryptText(
                                 inputText,
@@ -185,7 +187,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                                 decryptType
                             )
                         }
-                    } else if (decryptType == DecryptType.DiffieHellman) {
+                    } else if (decryptType == DecryptType.DiffieHellman || decryptType == DecryptType.CheckSignature) {
                         if (keyText.isNotEmpty() && publicKeyText.isNotEmpty()) {
                             viewModel.decryptText(
                                 inputText,
@@ -204,12 +206,28 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                     }
                 },
             ) {
-                Text(stringResource(R.string.decrypt))
+                if (decryptType == DecryptType.CheckCertificate) {
+                    Text(stringResource(R.string.check_certificate))
+                } else {
+                    Text(stringResource(R.string.decrypt))
+                }
             }
         } }
 
         item { Spacer(modifier = modifier.padding(4.dp)) }
-        item { Text(stringResource(R.string.decrypted_text), style = MaterialTheme.typography.titleMedium) }
+        item {
+            if (decryptType == DecryptType.CheckCertificate) {
+                Text(
+                    stringResource(R.string.certificate),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            } else {
+                Text(
+                    stringResource(R.string.decrypted_text),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
         item { Text(text = decipheredText.value) }
 
     }
@@ -264,6 +282,8 @@ fun SelectDecryptionType(
         "AES/CFB",
         "Diffie-Hellman",
         "RSA",
+        "Sprawdź certyfikat",
+        "Sprawdź podpis cyfrowy"
     )
     AlertDialog(onDismissRequest = { showAlertDialog.value = false },
         title = { Text(stringResource(R.string.select_encryption)) },
@@ -308,6 +328,13 @@ fun SelectDecryptionType(
                                         onDismiss(DecryptType.RSA, decryptType)
                                     }
 
+                                    decryptTypes[8] -> {
+                                        onDismiss(DecryptType.CheckCertificate, decryptType)
+                                    }
+
+                                    decryptTypes[9] -> {
+                                        onDismiss(DecryptType.CheckSignature, decryptType)
+                                    }
                                 }
                                 showAlertDialog.value = false
                             }

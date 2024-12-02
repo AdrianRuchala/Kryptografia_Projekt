@@ -26,4 +26,7 @@
     <string name="start_recording">Rozpocznij nagrywanie</string>
     <string name="end_recording">Zakończ nagrywanie</string>
     <string name="permission_not_granted_error">Musisz przyznać uprawnienia.</string>
+    <string name="private_key">Wprowdź klucz prywatny</string>
+    <string name="copy_encrypted_text">Skopiuj zaszyfrowany tekst</string>
+    <string name="text_was_coppied">Zaszyfrowany tekst został skopiowany</string>
 </resources>

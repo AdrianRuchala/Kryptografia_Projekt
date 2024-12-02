@@ -10,12 +10,9 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat.getString
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.KeyFactory
@@ -27,8 +24,10 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.math.pow
 import kotlin.math.sqrt
-import java.security.cert.X509Certificate
-import okhttp3.Request
+import java.security.Signature
+import java.security.interfaces.RSAPrivateKey
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
 
 
 class EncryptViewModel : ViewModel() {
@@ -97,11 +96,9 @@ class EncryptViewModel : ViewModel() {
                 }
             }
 
-            EncryptType.CheckCertificate -> {
-                viewModelScope.launch {
-                    checkCertificate(textToEncrypt) { newText ->
-                        encryptedText.value = newText
-                    }
+            EncryptType.SignData -> {
+                signData(textToEncrypt.toByteArray(), secretKey1) { newText ->
+                    encryptedText.value = newText
                 }
             }
         }
@@ -155,7 +152,8 @@ class EncryptViewModel : ViewModel() {
                     }
                 }
 
-                EncryptType.CheckCertificate -> {}
+                EncryptType.SignData -> {}
+
             }
         }
     }
@@ -365,7 +363,7 @@ class EncryptViewModel : ViewModel() {
             val keyFactory =
                 KeyFactory.getInstance("RSA") //stworzenie instacji do generowania klucza dla algorytmu RSA
             val publicKey =
-                keyFactory.generatePublic(java.security.spec.X509EncodedKeySpec(keyBytes)) as RSAPublicKey
+                keyFactory.generatePublic(X509EncodedKeySpec(keyBytes)) as RSAPublicKey
             //generowanie klucza publicznego z wcześniej dekodowanego klucza
 
             val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding") // stworzenie obiektu
@@ -401,37 +399,6 @@ class EncryptViewModel : ViewModel() {
         }
     }
 
-    private suspend fun checkCertificate(urlString: String, onSuccess: (String) -> Unit) {
-        withContext(Dispatchers.IO) {
-            try {
-                val client = OkHttpClient() //stowrzenie instacji klienta przy użyciu biblioteki OkHttp
-                val request = Request.Builder().url(urlString).build() //żadanie Http z przekazywanym adresem URL
-
-                try {
-                    val response = client.newCall(request).execute() //synchroniczne żadanie Http przy użyciu OkHttpClient
-
-                    val certificates = response.handshake?.peerCertificates ?: emptyList()
-                    //Pobiera certyfikaty SSL z HTTP
-
-                    for (certificate in certificates) { //iterujemy liste certyfikatów
-                        val cert = certificate as X509Certificate //rzutujemy obiekt certyfikatu na X509Certificate, który umożliwia odczytanie szczegółowych danych
-//                        onSuccess(
-//                            "Issuer: ${cert.issuerDN} \n" +
-//                                    "Subject: ${cert.subjectDN} \n" +
-//                                    "Valid From: ${cert.notBefore} \n" +
-//                                    "Valid To: ${cert.notAfter} \n"
-//                        )
-                        onSuccess("$cert")
-                    }
-                } catch (e: Exception) {
-                    onSuccess("Błąd analizy certyfikatu SSL")
-                }
-            } catch (e: Exception) {
-                onSuccess("Niepoprawny adres URL. Przykładowy adres URL: https://example.com")
-            }
-        }
-    }
-
     private fun saveEncryptedFile(encryptedBytes: ByteArray, context: Context) {
         val contentValues = ContentValues().apply { //stworzenie pliku txt
             put(
@@ -457,6 +424,26 @@ class EncryptViewModel : ViewModel() {
             context.contentResolver.openOutputStream(it).use { outputStream: OutputStream? ->
                 outputStream?.write(encryptedBytes) //wypełnienie pliku zaszyfrowanymi bitami
             }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun signData(data: ByteArray, privateKeyString: String, onSuccess: (String) -> Unit) {
+        try {
+            val keyBytes = Base64.getDecoder().decode(privateKeyString) //dekodujemy ciąg znaków na tablicę bajtów
+            val keyFactory = KeyFactory.getInstance("RSA") //tworzymy instację dla RSA
+            val privateKey = keyFactory.generatePrivate(PKCS8EncodedKeySpec(keyBytes)) as RSAPrivateKey
+            //tworzymy specyfikację klucza publicznego w formacie PKCS8EncodedKeySpec i generujemy klucz prywatny
+
+            val signature = Signature.getInstance("SHA256withRSA") //tworzymy instację obiektu z algorytmem SHA256withRSA
+            signature.initSign(privateKey) //inicjalizujemy obiekt, weryfikujemy klucz prywatny
+            signature.update(data) //przekazujemy dane wejściowe data do obiektu signature
+
+            val signedData = signature.sign() //generujemy podpis cyfrowy
+            val signedDataText = Base64.getEncoder().encodeToString(signedData) //kodujemy podpis cyfrowy do ciągu znaków
+            onSuccess(signedDataText)
+        } catch (e: Exception) {
+            onSuccess("Tworzenie podpisu cyfrowego nie powiodło się")
         }
     }
 }

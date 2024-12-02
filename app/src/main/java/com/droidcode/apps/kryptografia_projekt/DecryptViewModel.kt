@@ -4,9 +4,19 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.security.KeyFactory
 import java.security.MessageDigest
+import java.security.Signature
+import java.security.cert.X509Certificate
 import java.security.interfaces.RSAPrivateKey
+import java.security.interfaces.RSAPublicKey
+import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
@@ -20,51 +30,51 @@ class DecryptViewModel : ViewModel() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun decryptText(
-        textToDecipher: String,
+        textToDecrypt: String,
         key: String,
         publicKey: String,
         decryptType: DecryptType
     ) {
         when (decryptType) {
             DecryptType.Polyalphabetic -> {
-                decipherPolyalphabetic(textToDecipher, key) { newText ->
+                decipherPolyalphabetic(textToDecrypt, key) { newText ->
                     decryptedText.value = newText
                 }
             }
 
             DecryptType.Transposition -> {
-                decipherTransposition(textToDecipher) { newText ->
+                decipherTransposition(textToDecrypt) { newText ->
                     decryptedText.value = newText
                 }
             }
 
             DecryptType.AES -> {
-                decipherAES(textToDecipher, key) { newText ->
+                decipherAES(textToDecrypt, key) { newText ->
                     decryptedText.value = newText
                 }
             }
 
             DecryptType.DES -> {
-                decipherDES(textToDecipher, key) { newText ->
+                decipherDES(textToDecrypt, key) { newText ->
                     decryptedText.value = newText
                 }
             }
 
             DecryptType.OFB -> {
-                decipherOFB(textToDecipher, key) { newText ->
+                decipherOFB(textToDecrypt, key) { newText ->
                     decryptedText.value = newText
                 }
             }
 
             DecryptType.CFB -> {
-                decipherCFB(textToDecipher, key) { newText ->
+                decipherCFB(textToDecrypt, key) { newText ->
                     decryptedText.value = newText
                 }
             }
 
             DecryptType.DiffieHellman -> {
                 decipherDiffieHellman(
-                    textToDecipher.toLong(),
+                    textToDecrypt.toLong(),
                     key.toLong(),
                     publicKey.toLong()
                 ) { newText ->
@@ -73,7 +83,21 @@ class DecryptViewModel : ViewModel() {
             }
 
             DecryptType.RSA -> {
-                decipherRSA(textToDecipher, key) { newText ->
+                decipherRSA(textToDecrypt, key) { newText ->
+                    decryptedText.value = newText
+                }
+            }
+
+            DecryptType.CheckCertificate -> {
+                viewModelScope.launch {
+                    checkCertificate(textToDecrypt) { newText ->
+                        decryptedText.value = newText
+                    }
+                }
+            }
+
+            DecryptType.CheckSignature -> {
+                checkSignature(textToDecrypt.toByteArray(), key, publicKey) { newText ->
                     decryptedText.value = newText
                 }
             }
@@ -314,6 +338,57 @@ class DecryptViewModel : ViewModel() {
             onSuccess(decryptedText)
         } catch (e: Exception) {
             onSuccess("Błąd rozszyfrowania")
+        }
+    }
+
+    private suspend fun checkCertificate(urlString: String, onSuccess: (String) -> Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient() //stowrzenie instacji klienta przy użyciu biblioteki OkHttp
+                val request = Request.Builder().url(urlString).build() //żadanie Http z przekazywanym adresem URL
+
+                try {
+                    val response = client.newCall(request).execute() //synchroniczne żadanie Http przy użyciu OkHttpClient
+
+                    val certificates = response.handshake?.peerCertificates ?: emptyList()
+                    //Pobiera certyfikaty SSL z HTTP
+
+                    for (certificate in certificates) { //iterujemy liste certyfikatów
+                        val cert = certificate as X509Certificate //rzutujemy obiekt certyfikatu na X509Certificate, który umożliwia odczytanie szczegółowych danych
+//                        onSuccess(
+//                            "Issuer: ${cert.issuerDN} \n" +
+//                                    "Subject: ${cert.subjectDN} \n" +
+//                                    "Valid From: ${cert.notBefore} \n" +
+//                                    "Valid To: ${cert.notAfter} \n"
+//                        )
+                        onSuccess("$cert")
+                    }
+                } catch (e: Exception) {
+                    onSuccess("Błąd analizy certyfikatu SSL")
+                }
+            } catch (e: Exception) {
+                onSuccess("Niepoprawny adres URL. Przykładowy adres URL: https://example.com")
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun checkSignature(data: ByteArray, signatureString: String, publicKeyString: String, onSuccess: (String) -> Unit) {
+        try {
+            val keyBytes = Base64.getDecoder().decode(publicKeyString) //dekodujemy ciąg znaków na tablicę bajtów
+            val keyFactory = KeyFactory.getInstance("RSA") //tworzymy instację dla RSA
+            val publicKey = keyFactory.generatePublic(X509EncodedKeySpec(keyBytes)) as RSAPublicKey
+            //tworzymy specyfikację klucza publicznego w formacie X509EncodedKeySpec i generujemy klucz publiczny
+
+            val signature = Signature.getInstance("SHA256withRSA") //tworzymy instację obiektu z algorytmem SHA256withRSA
+            signature.initVerify(publicKey) //inicjalizujemy obiekt, weryfikujemy klucz publiczny
+            signature.update(data) //przekazujemy dane wejściowe data do obiektu signature
+
+            val decodedSignature = Base64.getDecoder().decode(signatureString) //dekodujemy ciąg znaków na tablicę bajtów
+            signature.verify(decodedSignature)  //porównujemy podpis z obliczonym podpisem dla danych data
+            onSuccess("Podpis cyfrowy jest prawidłowy")
+        } catch (e: Exception) {
+            onSuccess("Weryfikacja nie powiodła się")
         }
     }
 }

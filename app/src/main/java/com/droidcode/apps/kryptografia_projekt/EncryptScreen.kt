@@ -40,6 +40,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getString
@@ -140,7 +142,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
                 }
             )
 
-            if (encryptionType != EncryptType.Transposition && encryptionType != EncryptType.CheckCertificate) {
+            if (encryptionType != EncryptType.Transposition) {
                 TextField(
                     value = keyText,
                     onValueChange = { keyText = it },
@@ -183,6 +185,20 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
                     isError = secretKeyText2.isEmpty()
                 )
             }
+
+            if (encryptionType == EncryptType.SignData) {
+                TextField(
+                    value = secretKeyText1,
+                    onValueChange = { secretKeyText1 = it },
+                    modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    label = {
+                        Text(stringResource(R.string.private_key))
+                    },
+                    isError = secretKeyText1.isEmpty()
+                )
+            }
         }
 
         item {
@@ -192,7 +208,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
                     .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman && encryptionType != EncryptType.CheckCertificate) {
+                if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman) {
                     Column {
                         Button(
                             onClick = {
@@ -234,7 +250,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
 
                 Button(
                     onClick = {
-                        if (encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman && encryptionType != EncryptType.CheckCertificate) {
+                        if (encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman) {
                             if (keyText.isNotEmpty()) {
                                 viewModel.encryptText(
                                     inputText,
@@ -265,21 +281,18 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
                         }
                     },
                 ) {
-                    if (encryptionType == EncryptType.CheckCertificate) {
-                        Text(stringResource(R.string.check_certificate))
-                    } else {
-                        Text(stringResource(R.string.encrypt))
-                    }
+                    Text(stringResource(R.string.encrypt))
                 }
             }
         }
 
 
-        if (encryptionType == EncryptType.RSA) {
+        if (encryptionType == EncryptType.RSA || encryptionType == EncryptType.SignData) {
             item {
                 Button(onClick = {
-                    generateKey { generatedKey ->
-                        keyText = generatedKey
+                    generateKey { generatedPublicKey, generatedPrivateKey ->
+                        keyText = generatedPublicKey
+                        secretKeyText1 = generatedPrivateKey
                     }
                 }) {
                     Text(stringResource(R.string.generate_key))
@@ -289,21 +302,12 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
         }
 
         item { Spacer(modifier = modifier.padding(4.dp)) }
-        item {
-            if (encryptionType == EncryptType.CheckCertificate) {
-                Text(
-                    stringResource(R.string.certificate),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            } else {
-                Text(
-                    stringResource(R.string.encrypted_text),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
+        item { Text(stringResource(R.string.encrypted_text), style = MaterialTheme.typography.titleMedium)
         }
-        item { Text(text = encryptedText.value) }
-
+        item { Text(text = encryptedText.value, modifier = modifier.padding(bottom = 8.dp)) }
+        item { Button(onClick = { copyText(context, encryptedText.value) }) {
+            Text(stringResource(R.string.copy_encrypted_text))
+        } }
     }
 }
 
@@ -345,7 +349,7 @@ fun SelectEncryptionType(
         "AES/CFB",
         "Diffie-Hellman",
         "RSA",
-        "Sprawdź certyfikat"
+        "Stwórz podpis cyfrowy"
     )
     AlertDialog(onDismissRequest = { showAlertDialog.value = false },
         title = { Text(stringResource(R.string.select_encryption)) },
@@ -391,7 +395,7 @@ fun SelectEncryptionType(
                                     }
 
                                     encryptTypes[8] -> {
-                                        onDismiss(EncryptType.CheckCertificate, encryptType)
+                                        onDismiss(EncryptType.SignData, encryptType)
                                     }
 
                                 }
@@ -415,12 +419,18 @@ fun SelectEncryptionType(
     )
 }
 
-fun generateKey(onSuccess: (String) -> Unit) {
+fun generateKey(onSuccess: (String, String) -> Unit) {
     val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
     keyPairGenerator.initialize(2048)
-    val publicKey = keyPairGenerator.generateKeyPair().public
+    val keyPair = keyPairGenerator.generateKeyPair()
+
+    val privateKey = keyPair.private
+    val publicKey = keyPair.public
+
+    val privateKeyBase64 = Base64.getEncoder().encodeToString(privateKey.encoded)
     val publicKeyBase64 = Base64.getEncoder().encodeToString(publicKey.encoded)
-    onSuccess(publicKeyBase64)
+
+    onSuccess(publicKeyBase64, privateKeyBase64)
 }
 
 private fun startRecording(context: Context) {
@@ -491,5 +501,12 @@ fun isAudioPermissionGranted(context: Context): Boolean {
         ).show()
         return false
     }
+}
+
+fun copyText(context: Context, text: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clip = ClipData.newPlainText("Encrypted Text", text)
+    clipboard.setPrimaryClip(clip)
+    Toast.makeText(context, context.getString(R.string.text_was_coppied), Toast.LENGTH_SHORT).show()
 }
 
