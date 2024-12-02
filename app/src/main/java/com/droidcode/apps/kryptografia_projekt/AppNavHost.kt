@@ -12,7 +12,7 @@ import androidx.navigation.compose.composable
 @Composable
 fun AppNavHost(modifier: Modifier, navController: NavHostController) {
     val encryptViewModel = EncryptViewModel()
-    val decipherViewModel = DecipherViewModel()
+    val decryptViewModel = DecryptViewModel()
 
     NavHost(
         navController = navController,
@@ -32,7 +32,7 @@ fun AppNavHost(modifier: Modifier, navController: NavHostController) {
         }
 
         composable(Decipher.route) {
-            DecipherScreen(Modifier, decipherViewModel) { navController.navigateUp() }
+            DecipherScreen(Modifier, decryptViewModel) { navController.navigateUp() }
         }
     }
 }

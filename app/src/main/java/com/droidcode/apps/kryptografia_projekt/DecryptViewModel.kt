@@ -14,71 +14,69 @@ import javax.crypto.spec.SecretKeySpec
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-class DecipherViewModel : ViewModel() {
+class DecryptViewModel : ViewModel() {
 
-    val decipheredText = mutableStateOf("")
+    val decryptedText = mutableStateOf("")
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun decipherText(
+    fun decryptText(
         textToDecipher: String,
         key: String,
         publicKey: String,
-        encryptType: EncryptType
+        decryptType: DecryptType
     ) {
-        when (encryptType) {
-            EncryptType.Polyalphabetic -> {
+        when (decryptType) {
+            DecryptType.Polyalphabetic -> {
                 decipherPolyalphabetic(textToDecipher, key) { newText ->
-                    decipheredText.value = newText
+                    decryptedText.value = newText
                 }
             }
 
-            EncryptType.Transposition -> {
+            DecryptType.Transposition -> {
                 decipherTransposition(textToDecipher) { newText ->
-                    decipheredText.value = newText
+                    decryptedText.value = newText
                 }
             }
 
-            EncryptType.AES -> {
+            DecryptType.AES -> {
                 decipherAES(textToDecipher, key) { newText ->
-                    decipheredText.value = newText
+                    decryptedText.value = newText
                 }
             }
 
-            EncryptType.DES -> {
+            DecryptType.DES -> {
                 decipherDES(textToDecipher, key) { newText ->
-                    decipheredText.value = newText
+                    decryptedText.value = newText
                 }
             }
 
-            EncryptType.OFB -> {
+            DecryptType.OFB -> {
                 decipherOFB(textToDecipher, key) { newText ->
-                    decipheredText.value = newText
+                    decryptedText.value = newText
                 }
             }
 
-            EncryptType.CFB -> {
+            DecryptType.CFB -> {
                 decipherCFB(textToDecipher, key) { newText ->
-                    decipheredText.value = newText
+                    decryptedText.value = newText
                 }
             }
 
-            EncryptType.DiffieHellman -> {
+            DecryptType.DiffieHellman -> {
                 decipherDiffieHellman(
                     textToDecipher.toLong(),
                     key.toLong(),
                     publicKey.toLong()
                 ) { newText ->
-                    decipheredText.value = newText
+                    decryptedText.value = newText
                 }
             }
 
-            EncryptType.RSA -> {
+            DecryptType.RSA -> {
                 decipherRSA(textToDecipher, key) { newText ->
-                    decipheredText.value = newText
+                    decryptedText.value = newText
                 }
             }
-
-            EncryptType.CheckCertificate -> {}
         }
     }
 

@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,14 +44,14 @@ import java.io.InputStreamReader
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateBack: () -> Unit) {
+fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("") }
     var keyText by remember { mutableStateOf("") }
     var publicKeyText by remember { mutableStateOf("") }
-    var decipherType by remember { mutableStateOf(EncryptType.Polyalphabetic) }
-    var decipherTypeText by remember { mutableStateOf("Polialfabetyczne") }
+    var decryptType by remember { mutableStateOf(DecryptType.Polyalphabetic) }
+    var decryptTypeText by remember { mutableStateOf("Polialfabetyczne") }
     val showAlertDialog = remember { mutableStateOf(false) }
-    val decipheredText by remember { mutableStateOf(viewModel.decipheredText) }
+    val decipheredText by remember { mutableStateOf(viewModel.decryptedText) }
 
     val context = LocalContext.current
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
@@ -64,12 +67,12 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateB
     }
 
     if (showAlertDialog.value) {
-        SelectEncryptionType(
+        SelectDecryptionType(
             modifier,
             showAlertDialog
-        ) { selectedDecipherType, selectedDecipherText ->
-            decipherType = selectedDecipherType
-            decipherTypeText = selectedDecipherText
+        ) { selectedDecryptedType, selectedDecryptedText ->
+            decryptType = selectedDecryptedType
+            decryptTypeText = selectedDecryptedText
         }
     }
 
@@ -98,7 +101,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateB
                     modifier.clickable { showAlertDialog.value = true },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = decipherTypeText)
+                    Text(text = decryptTypeText)
                     Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = null)
                 }
             }
@@ -112,7 +115,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateB
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
                 label = {
-                    if (decipherType == EncryptType.DiffieHellman) {
+                    if (decryptType == DecryptType.DiffieHellman) {
                         Text(stringResource(R.string.prime_number))
                     } else {
                         Text(stringResource(R.string.type_text))
@@ -120,7 +123,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateB
                 }
             )
 
-            if (decipherType != EncryptType.Transposition) {
+            if (decryptType != DecryptType.Transposition) {
                 TextField(
                     value = keyText,
                     onValueChange = { keyText = it },
@@ -128,7 +131,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateB
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
                     label = {
-                        if (decipherType == EncryptType.DiffieHellman) {
+                        if (decryptType == DecryptType.DiffieHellman) {
                             Text(stringResource(R.string.base_number))
                         } else {
                             Text(stringResource(R.string.type_key))
@@ -138,7 +141,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateB
                 )
             }
 
-            if (decipherType == EncryptType.DiffieHellman) {
+            if (decryptType == DecryptType.DiffieHellman) {
                 TextField(
                     value = publicKeyText,
                     onValueChange = { publicKeyText = it },
@@ -159,7 +162,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateB
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            if (decipherType != EncryptType.Polyalphabetic && decipherType != EncryptType.Transposition && decipherType != EncryptType.DiffieHellman) {
+            if (decryptType != DecryptType.Polyalphabetic && decryptType != DecryptType.Transposition && decryptType != DecryptType.DiffieHellman) {
                 Button(
                     onClick = {
                         filePicker.launch(arrayOf("*/*"))
@@ -173,40 +176,40 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecipherViewModel, onNavigateB
 
             Button(
                 onClick = {
-                    if (decipherType != EncryptType.Transposition && decipherType != EncryptType.DiffieHellman) {
+                    if (decryptType != DecryptType.Transposition && decryptType != DecryptType.DiffieHellman) {
                         if (keyText.isNotEmpty()) {
-                            viewModel.decipherText(
+                            viewModel.decryptText(
                                 inputText,
                                 keyText,
                                 publicKeyText,
-                                decipherType
+                                decryptType
                             )
                         }
-                    } else if (decipherType == EncryptType.DiffieHellman) {
+                    } else if (decryptType == DecryptType.DiffieHellman) {
                         if (keyText.isNotEmpty() && publicKeyText.isNotEmpty()) {
-                            viewModel.decipherText(
+                            viewModel.decryptText(
                                 inputText,
                                 keyText,
                                 publicKeyText,
-                                decipherType
+                                decryptType
                             )
                         }
                     } else {
-                        viewModel.decipherText(
+                        viewModel.decryptText(
                             inputText,
                             keyText,
                             publicKeyText,
-                            decipherType
+                            decryptType
                         )
                     }
                 },
             ) {
-                Text(stringResource(R.string.decipher))
+                Text(stringResource(R.string.decrypt))
             }
         } }
 
         item { Spacer(modifier = modifier.padding(4.dp)) }
-        item { Text(stringResource(R.string.deciphered_text), style = MaterialTheme.typography.titleMedium) }
+        item { Text(stringResource(R.string.decrypted_text), style = MaterialTheme.typography.titleMedium) }
         item { Text(text = decipheredText.value) }
 
     }
@@ -227,7 +230,7 @@ fun DecipherTopBar(modifier: Modifier, onNavigateBack: () -> Unit) {
                 .clickable { onNavigateBack() }
         )
 
-        Text(stringResource(R.string.decipher), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.decrypt), style = MaterialTheme.typography.titleMedium)
 
         Spacer(modifier.size(36.dp))
     }
@@ -244,4 +247,84 @@ private fun readFileContent(uri: Uri, context: Context, onSuccess: (String) -> U
     } catch (e: Exception) {
         Log.d(TAG, e.message.toString())
     }
+}
+
+@Composable
+fun SelectDecryptionType(
+    modifier: Modifier,
+    showAlertDialog: MutableState<Boolean>,
+    onDismiss: (DecryptType, String) -> Unit
+) {
+    val decryptTypes = arrayOf(
+        "Polialfabetyczne",
+        "Przestawieniowe",
+        "AES/CBC",
+        "DES/CBC",
+        "DES/OFB",
+        "AES/CFB",
+        "Diffie-Hellman",
+        "RSA",
+    )
+    AlertDialog(onDismissRequest = { showAlertDialog.value = false },
+        title = { Text(stringResource(R.string.select_encryption)) },
+        text = {
+            Column(modifier.fillMaxWidth()) {
+                decryptTypes.forEach { decryptType ->
+                    Text(
+                        text = decryptType,
+                        modifier = modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                when (decryptType) {
+                                    decryptTypes[0] -> {
+                                        onDismiss(DecryptType.Polyalphabetic, decryptType)
+                                    }
+
+                                    decryptTypes[1] -> {
+                                        onDismiss(DecryptType.Transposition, decryptType)
+                                    }
+
+                                    decryptTypes[2] -> {
+                                        onDismiss(DecryptType.AES, decryptType)
+                                    }
+
+                                    decryptTypes[3] -> {
+                                        onDismiss(DecryptType.DES, decryptType)
+                                    }
+
+                                    decryptTypes[4] -> {
+                                        onDismiss(DecryptType.OFB, decryptType)
+                                    }
+
+                                    decryptTypes[5] -> {
+                                        onDismiss(DecryptType.CFB, decryptType)
+                                    }
+
+                                    decryptTypes[6] -> {
+                                        onDismiss(DecryptType.DiffieHellman, decryptType)
+                                    }
+
+                                    decryptTypes[7] -> {
+                                        onDismiss(DecryptType.RSA, decryptType)
+                                    }
+
+                                }
+                                showAlertDialog.value = false
+                            }
+                            .padding(vertical = 8.dp),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    showAlertDialog.value = false
+                }
+            ) {
+                Text(stringResource(R.string.dialog_negative))
+            }
+        }
+    )
 }

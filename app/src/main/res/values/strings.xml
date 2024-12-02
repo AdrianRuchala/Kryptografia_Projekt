@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Kryptografia_Projekt</string>
+    <string name="app_name">Szyfrator</string>
     <string name="select_encryption_type">Rodzaj szyfrowania:</string>
     <string name="type_text">Wprowadź teskt</string>
     <string name="encrypt">Zaszyfruj</string>
@@ -8,9 +8,9 @@
     <string name="dialog_negative">Anuluj</string>
     <string name="select_file">Wybierz plik</string>
     <string name="type_key">Wprowadź klucz</string>
-    <string name="decipher">Rozszyfruj</string>
+    <string name="decrypt">Rozszyfruj</string>
     <string name="encrypt_app">Aplikacja szyfrująca</string>
-    <string name="deciphered_text">Rozszyfrowany tekst:</string>
+    <string name="decrypted_text">Rozszyfrowany tekst:</string>
     <string name="empty_key_error">Brak klucza. Wprowadź klucz i wybierz ponownie plik.</string>
     <string name="file_saved">Zaszyfrowany plik został zapisany!</string>
     <string name="read_from_file">Wczytaj tekst z pliku</string>

@@ -28,10 +28,21 @@ fun MenuScreen(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            stringResource(R.string.encrypt_app),
-            style = MaterialTheme.typography.headlineLarge
-        )
+        Column(
+            modifier
+            .fillMaxWidth(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                stringResource(R.string.app_name),
+                style = MaterialTheme.typography.headlineLarge
+            )
+            Text(
+                stringResource(R.string.encrypt_app),
+                style = MaterialTheme.typography.headlineMedium
+            )
+        }
     }
     Column(
         modifier.fillMaxSize(),
@@ -43,7 +54,7 @@ fun MenuScreen(
         }
 
         Button(onClick = { navigateToDecipherScreen() }, modifier.padding(8.dp)) {
-            Text(stringResource(R.string.decipher), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.decrypt), style = MaterialTheme.typography.titleLarge)
         }
     }
 }
