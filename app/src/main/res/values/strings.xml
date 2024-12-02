@@ -23,4 +23,7 @@
     <string name="check_certificate">Sprawdź cerytfikat</string>
     <string name="type_url">Wprowadź adres strony</string>
     <string name="certificate">Certyfikat:</string>
+    <string name="start_recording">Rozpocznij nagrywanie</string>
+    <string name="end_recording">Zakończ nagrywanie</string>
+    <string name="permission_not_granted_error">Musisz przyznać uprawnienia.</string>
 </resources>

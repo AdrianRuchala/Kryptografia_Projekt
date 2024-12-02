@@ -1,7 +1,12 @@
 package com.droidcode.apps.kryptografia_projekt
 
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,10 +41,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import android.Manifest
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.checkSelfPermission
+import androidx.core.content.ContextCompat.getExternalFilesDirs
 import androidx.core.content.ContextCompat.getString
+import androidx.core.net.toUri
+import java.io.File
 import java.security.KeyPairGenerator
 import java.util.Base64
+
+private var mediaRecorder: MediaRecorder? = null
+private var audioFile: File? = null
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -52,6 +67,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
     var encryptionTypeText by remember { mutableStateOf("Polialfabetyczne") }
     val showAlertDialog = remember { mutableStateOf(false) }
     val encryptedText by remember { mutableStateOf(viewModel.encryptedText) }
+    var isRecording by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
@@ -174,83 +190,121 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
             }
         }
 
-        item {Row(
-            modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman && encryptionType != EncryptType.CheckCertificate) {
+        item {
+            Row(
+                modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman && encryptionType != EncryptType.CheckCertificate) {
+                    Column {
+                        Button(
+                            onClick = {
+                                filePicker.launch(arrayOf("*/*"))
+                            }
+                        ) {
+                            Text(stringResource(R.string.select_file))
+                        }
+
+                        Button(
+                            onClick = {
+                                if(isAudioPermissionGranted(context) && keyText.isNotEmpty()){
+                                    if (isRecording) {
+                                        stopRecording(viewModel, keyText, encryptionType, context)
+                                        isRecording = !isRecording
+                                    } else {
+                                        startRecording(context)
+                                        isRecording = !isRecording
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.empty_key_error),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                        ) {
+                            Text(
+                                if (isRecording) stringResource(R.string.end_recording) else stringResource(
+                                    R.string.start_recording
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    Spacer(modifier)
+                }
+
                 Button(
                     onClick = {
-                        filePicker.launch(arrayOf("*/*"))
-                    }
+                        if (encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman && encryptionType != EncryptType.CheckCertificate) {
+                            if (keyText.isNotEmpty()) {
+                                viewModel.encryptText(
+                                    inputText,
+                                    keyText,
+                                    secretKeyText1,
+                                    secretKeyText2,
+                                    encryptionType
+                                )
+                            }
+                        } else if (encryptionType == EncryptType.DiffieHellman) {
+                            if (keyText.isNotEmpty() && secretKeyText1.isNotEmpty() && secretKeyText2.isNotEmpty()) {
+                                viewModel.encryptText(
+                                    inputText,
+                                    keyText,
+                                    secretKeyText1,
+                                    secretKeyText2,
+                                    encryptionType
+                                )
+                            }
+                        } else {
+                            viewModel.encryptText(
+                                inputText,
+                                keyText,
+                                secretKeyText1,
+                                secretKeyText2,
+                                encryptionType
+                            )
+                        }
+                    },
                 ) {
-                    Text(stringResource(R.string.select_file))
-                }
-            } else {
-                Spacer(modifier)
-            }
-
-            Button(
-                onClick = {
-                    if (encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman && encryptionType != EncryptType.CheckCertificate) {
-                        if (keyText.isNotEmpty()) {
-                            viewModel.encryptText(
-                                inputText,
-                                keyText,
-                                secretKeyText1,
-                                secretKeyText2,
-                                encryptionType
-                            )
-                        }
-                    } else if (encryptionType == EncryptType.DiffieHellman) {
-                        if (keyText.isNotEmpty() && secretKeyText1.isNotEmpty() && secretKeyText2.isNotEmpty()) {
-                            viewModel.encryptText(
-                                inputText,
-                                keyText,
-                                secretKeyText1,
-                                secretKeyText2,
-                                encryptionType
-                            )
-                        }
+                    if (encryptionType == EncryptType.CheckCertificate) {
+                        Text(stringResource(R.string.check_certificate))
                     } else {
-                        viewModel.encryptText(
-                            inputText,
-                            keyText,
-                            secretKeyText1,
-                            secretKeyText2,
-                            encryptionType
-                        )
+                        Text(stringResource(R.string.encrypt))
                     }
-                },
-            ) {
-                if (encryptionType == EncryptType.CheckCertificate) {
-                    Text(stringResource(R.string.check_certificate))
-                } else {
-                    Text(stringResource(R.string.encrypt))
                 }
             }
-        } }
+        }
 
 
         if (encryptionType == EncryptType.RSA) {
-            item { Button(onClick = {
-                generateKey { generatedKey ->
-                    keyText = generatedKey
+            item {
+                Button(onClick = {
+                    generateKey { generatedKey ->
+                        keyText = generatedKey
+                    }
+                }) {
+                    Text(stringResource(R.string.generate_key))
                 }
-            }) {
-                Text(stringResource(R.string.generate_key))
-            } }
+            }
 
         }
 
         item { Spacer(modifier = modifier.padding(4.dp)) }
         item {
             if (encryptionType == EncryptType.CheckCertificate) {
-                Text(stringResource(R.string.certificate), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(R.string.certificate),
+                    style = MaterialTheme.typography.titleMedium
+                )
             } else {
-                Text(stringResource(R.string.encrypted_text), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(R.string.encrypted_text),
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
         item { Text(text = encryptedText.value) }
@@ -373,3 +427,74 @@ fun generateKey(onSuccess: (String) -> Unit) {
     val publicKeyBase64 = Base64.getEncoder().encodeToString(publicKey.encoded)
     onSuccess(publicKeyBase64)
 }
+
+private fun startRecording(context: Context) {
+    try {
+        // Tworzenie pliku do zapisania nagrania
+        val outputDir = context.cacheDir
+        audioFile = File.createTempFile("voice_message", ".m4a", outputDir)
+
+        // Przygotowanie MediaRecorder
+        mediaRecorder = MediaRecorder().apply {
+            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            setOutputFile(audioFile?.absolutePath)
+            prepare()
+            start()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        mediaRecorder?.release()
+        mediaRecorder = null
+        Toast.makeText(context, "Błąd przy rozpoczęciu nagrywania", Toast.LENGTH_SHORT).show()
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+private fun stopRecording(
+    viewModel: EncryptViewModel,
+    key: String,
+    encryptType: EncryptType,
+    context: Context
+) {
+    try {
+        mediaRecorder?.apply {
+            stop()
+            release()
+        }
+        mediaRecorder = null
+
+        audioFile?.let {
+            viewModel.encryptFile(it.toUri(), key, encryptType, context)
+        }
+    } catch (e: IllegalStateException) {
+        e.printStackTrace()
+        Toast.makeText(context, "Błąd przy zatrzymywaniu nagrywania", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "Wystąpił błąd. Spróbuj ponownie", Toast.LENGTH_SHORT).show()
+    } finally {
+        mediaRecorder = null
+        audioFile = null
+    }
+}
+
+fun isAudioPermissionGranted(context: Context): Boolean {
+    val permission = Manifest.permission.RECORD_AUDIO
+    if (ContextCompat.checkSelfPermission(
+            context,
+            permission
+        ) == PackageManager.PERMISSION_GRANTED
+    ) {
+        return true
+    } else {
+        Toast.makeText(
+            context,
+            context.getString(R.string.permission_not_granted_error),
+            Toast.LENGTH_SHORT
+        ).show()
+        return false
+    }
+}
+
