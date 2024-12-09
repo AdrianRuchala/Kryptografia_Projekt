@@ -183,7 +183,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
                 )
             }
 
-            if (encryptionType == EncryptType.SignData) {
+            if (encryptionType == EncryptType.SignData || encryptionType == EncryptType.RSA) {
                 TextField(
                     value = secretKeyText1,
                     onValueChange = { secretKeyText1 = it },

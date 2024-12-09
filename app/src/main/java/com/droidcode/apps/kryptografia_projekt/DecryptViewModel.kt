@@ -1,7 +1,5 @@
 package com.droidcode.apps.kryptografia_projekt
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +14,7 @@ import java.security.Signature
 import java.security.cert.X509Certificate
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
+import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 import javax.crypto.Cipher
@@ -308,12 +307,12 @@ class DecryptViewModel : ViewModel() {
 
     private fun decipherRSA(encryptedText: String, key: String, onSuccess: (String) -> Unit) {
         try {
-            val privateKeyBytes = Base64.getDecoder().decode(key)
-            val keyFactory = KeyFactory.getInstance("RSA")
-            val privateKey = keyFactory.generatePrivate(java.security.spec.PKCS8EncodedKeySpec(privateKeyBytes)) as RSAPrivateKey
+            val keyBytes = Base64.getDecoder().decode(key)
+            val keyFactory = KeyFactory.getInstance("RSA") // Tworzenie instancji algorytmu RSA
+            val privateKey = keyFactory.generatePrivate(PKCS8EncodedKeySpec(keyBytes)) as RSAPrivateKey
 
-            val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-            cipher.init(Cipher.DECRYPT_MODE, privateKey)
+            val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding") // Ustawienia zgodne z funkcją szyfrującą
+            cipher.init(Cipher.DECRYPT_MODE, privateKey) // Inicjalizacja w trybie rozszyfrowania
 
             val encryptedData = Base64.getDecoder().decode(encryptedText)
             val maxBlockSize = privateKey.modulus.bitLength() / 8
@@ -321,14 +320,14 @@ class DecryptViewModel : ViewModel() {
 
             var offset = 0
             while (offset < encryptedData.size) {
-                val chunkSize = minOf(maxBlockSize, encryptedData.size - offset)
+                val chunkSize = minOf(maxBlockSize, encryptedData.size - offset) // Rozmiar bloku
                 val chunk = encryptedData.copyOfRange(offset, offset + chunkSize)
-                val decryptedChunk = cipher.doFinal(chunk)
+                val decryptedChunk = cipher.doFinal(chunk) // Rozszyfrowanie bloku
                 decryptedData.addAll(decryptedChunk.toList())
                 offset += chunkSize
             }
 
-            val decryptedText = String(decryptedData.toByteArray(), Charsets.UTF_8)
+            val decryptedText = String(decryptedData.toByteArray(), Charsets.UTF_8) // Konwersja na tekst
             onSuccess(decryptedText)
         } catch (e: Exception) {
             onSuccess("Błąd rozszyfrowania")
@@ -366,7 +365,7 @@ class DecryptViewModel : ViewModel() {
         }
     }
 
-    fun checkSignature(data: ByteArray, signatureString: String, publicKeyString: String, onSuccess: (String) -> Unit) {
+    private fun checkSignature(data: ByteArray, signatureString: String, publicKeyString: String, onSuccess: (String) -> Unit) {
         try {
             val keyBytes = Base64.getDecoder().decode(publicKeyString) //dekodujemy ciąg znaków na tablicę bajtów
             val keyFactory = KeyFactory.getInstance("RSA") //tworzymy instację dla RSA
