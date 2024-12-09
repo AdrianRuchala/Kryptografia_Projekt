@@ -28,7 +28,6 @@ class DecryptViewModel : ViewModel() {
 
     val decryptedText = mutableStateOf("")
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun decryptText(
         textToDecrypt: String,
         key: String,
@@ -174,7 +173,6 @@ class DecryptViewModel : ViewModel() {
         onSuccess(decryptedText.toString())
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun decipherAES(textToDecipher: String, key: String, onSuccess: (String) -> Unit) {
         try {
             val md = MessageDigest.getInstance("MD5")
@@ -198,7 +196,6 @@ class DecryptViewModel : ViewModel() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun decipherDES(textToDecipher: String, key: String, onSuccess: (String) -> Unit) {
         try {
             val md = MessageDigest.getInstance("MD5")
@@ -223,7 +220,6 @@ class DecryptViewModel : ViewModel() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun decipherOFB(textToDecipher: String, key: String, onSuccess: (String) -> Unit) {
         try {
             val md = MessageDigest.getInstance("MD5")
@@ -248,7 +244,6 @@ class DecryptViewModel : ViewModel() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun decipherCFB(textToDecipher: String, key: String, onSuccess: (String) -> Unit) {
         try {
             val md = MessageDigest.getInstance("MD5")
@@ -311,7 +306,6 @@ class DecryptViewModel : ViewModel() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun decipherRSA(encryptedText: String, key: String, onSuccess: (String) -> Unit) {
         try {
             val privateKeyBytes = Base64.getDecoder().decode(key)
@@ -372,7 +366,6 @@ class DecryptViewModel : ViewModel() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun checkSignature(data: ByteArray, signatureString: String, publicKeyString: String, onSuccess: (String) -> Unit) {
         try {
             val keyBytes = Base64.getDecoder().decode(publicKeyString) //dekodujemy ciąg znaków na tablicę bajtów

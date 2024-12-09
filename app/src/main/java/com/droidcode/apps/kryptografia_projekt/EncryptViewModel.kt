@@ -3,10 +3,8 @@ package com.droidcode.apps.kryptografia_projekt
 import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat.getString
 import androidx.lifecycle.ViewModel
@@ -28,13 +26,13 @@ import java.security.Signature
 import java.security.interfaces.RSAPrivateKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
+import javax.crypto.Mac
 
 
 class EncryptViewModel : ViewModel() {
 
     val encryptedText = mutableStateOf("")
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun encryptText(
         textToEncrypt: String,
         key: String,
@@ -101,10 +99,15 @@ class EncryptViewModel : ViewModel() {
                     encryptedText.value = newText
                 }
             }
+
+            EncryptType.HMAC -> {
+                encryptHMAC(textToEncrypt, key) { newText ->
+                    encryptedText.value = newText
+                }
+            }
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun encryptFile(uri: Uri, key: String, encryptType: EncryptType, context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
@@ -153,6 +156,8 @@ class EncryptViewModel : ViewModel() {
                 }
 
                 EncryptType.SignData -> {}
+
+                EncryptType.HMAC -> {}
 
             }
         }
@@ -222,7 +227,6 @@ class EncryptViewModel : ViewModel() {
     }
 
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun encryptAES(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
         //AES blokowy
         val md = MessageDigest.getInstance("MD5") //stworzenie obiektu do generowania hashy
@@ -251,7 +255,6 @@ class EncryptViewModel : ViewModel() {
         onSuccess(encryptedText.toString())
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun encryptDES(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
         //DES blokowy
         val md = MessageDigest.getInstance("MD5")
@@ -272,7 +275,6 @@ class EncryptViewModel : ViewModel() {
         onSuccess(encryptedText.toString())
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun encryptOFB(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
         //DES strumieniowy
         val md = MessageDigest.getInstance("MD5")
@@ -291,7 +293,6 @@ class EncryptViewModel : ViewModel() {
         onSuccess(encryptedText.toString())
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun encryptCFB(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
         //AES strumieniowy
         val md = MessageDigest.getInstance("MD5")
@@ -356,7 +357,6 @@ class EncryptViewModel : ViewModel() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun encryptRSA(textToEncrypt: ByteArray, key: String, onSuccess: (String) -> Unit) {
         try {
             val keyBytes = Base64.getDecoder().decode(key) //dekodowanie klucza
@@ -399,6 +399,24 @@ class EncryptViewModel : ViewModel() {
         }
     }
 
+    private fun encryptHMAC(textToEncrypt: String, key: String, onSuccess: (String) -> Unit){
+        try {
+            val secretKey = SecretKeySpec(key.toByteArray(Charsets.UTF_8), "HmacSHA256")
+            //tworzymy obiekt SecretKeySpec z podanym kluczem
+
+            val mac = Mac.getInstance("HmacSHA256")
+            mac.init(secretKey) //inicjalizujemy HMAC z podanym kluczem
+
+            val hmacBytes = mac.doFinal(textToEncrypt.toByteArray(Charsets.UTF_8))
+            //generujemy HMAC dla podanych danych
+
+            val encryptedText = Base64.getEncoder().encodeToString(hmacBytes)
+            onSuccess(encryptedText)
+        } catch (e: Exception){
+            onSuccess("Błąd szyfrowania")
+        }
+    }
+
     private fun saveEncryptedFile(encryptedBytes: ByteArray, context: Context) {
         val contentValues = ContentValues().apply { //stworzenie pliku txt
             put(
@@ -427,8 +445,7 @@ class EncryptViewModel : ViewModel() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun signData(data: ByteArray, privateKeyString: String, onSuccess: (String) -> Unit) {
+    private fun signData(data: ByteArray, privateKeyString: String, onSuccess: (String) -> Unit) {
         try {
             val keyBytes = Base64.getDecoder().decode(privateKeyString) //dekodujemy ciąg znaków na tablicę bajtów
             val keyFactory = KeyFactory.getInstance("RSA") //tworzymy instację dla RSA

@@ -4,11 +4,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,7 +51,6 @@ import java.util.Base64
 private var mediaRecorder: MediaRecorder? = null
 private var audioFile: File? = null
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("") }
@@ -208,7 +205,7 @@ fun EncryptScreen(modifier: Modifier, viewModel: EncryptViewModel, onNavigateBac
                     .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman) {
+                if (encryptionType != EncryptType.Polyalphabetic && encryptionType != EncryptType.Transposition && encryptionType != EncryptType.DiffieHellman && encryptionType != EncryptType.HMAC) {
                     Column {
                         Button(
                             onClick = {
@@ -349,7 +346,8 @@ fun SelectEncryptionType(
         "AES/CFB",
         "Diffie-Hellman",
         "RSA",
-        "Stwórz podpis cyfrowy"
+        "Stwórz podpis cyfrowy",
+        "HMAC"
     )
     AlertDialog(onDismissRequest = { showAlertDialog.value = false },
         title = { Text(stringResource(R.string.select_encryption)) },
@@ -396,6 +394,10 @@ fun SelectEncryptionType(
 
                                     encryptTypes[8] -> {
                                         onDismiss(EncryptType.SignData, encryptType)
+                                    }
+
+                                    encryptTypes[9] -> {
+                                        onDismiss(EncryptType.HMAC, encryptType)
                                     }
 
                                 }
@@ -456,7 +458,6 @@ private fun startRecording(context: Context) {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 private fun stopRecording(
     viewModel: EncryptViewModel,
     key: String,
