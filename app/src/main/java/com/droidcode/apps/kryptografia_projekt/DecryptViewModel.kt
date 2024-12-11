@@ -20,8 +20,6 @@ import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 class DecryptViewModel : ViewModel() {
 
@@ -66,16 +64,6 @@ class DecryptViewModel : ViewModel() {
 
             DecryptType.CFB -> {
                 decipherCFB(textToDecrypt, key) { newText ->
-                    decryptedText.value = newText
-                }
-            }
-
-            DecryptType.DiffieHellman -> {
-                decipherDiffieHellman(
-                    textToDecrypt.toLong(),
-                    key.toLong(),
-                    publicKey.toLong()
-                ) { newText ->
                     decryptedText.value = newText
                 }
             }
@@ -261,45 +249,6 @@ class DecryptViewModel : ViewModel() {
 
             onSuccess(decipheredText)
 
-        } catch (e: Exception) {
-            onSuccess("Błąd rozszyfrowania")
-        }
-    }
-
-    private fun decipherDiffieHellman(
-        primeNumber: Long,
-        baseNumber: Long,
-        publicKey: Long,
-        onSuccess: (String) -> Unit
-    ) {
-        try {
-            val typedNumber = primeNumber.toInt()
-            if (typedNumber < 2) {
-                onSuccess("Wprowadzona liczba nie jest liczbą pierwszą")
-                return
-            }
-            for (i in 2..sqrt(typedNumber.toDouble()).toInt()) {
-                if (typedNumber % i == 0) {
-                    onSuccess("Wprowadzona liczba nie jest liczbą pierwszą")
-                    return
-                }
-            }
-
-            var privateKey: Long? = null
-            for (possibleKey in 1 until primeNumber) {
-                val calculatedPublicKey =
-                    (baseNumber.toDouble().pow(possibleKey.toDouble()).toLong() % primeNumber)
-                if (calculatedPublicKey == publicKey) {
-                    privateKey = possibleKey
-                    break
-                }
-            }
-
-            if (privateKey != null) {
-                onSuccess("Sekretny klucz: $privateKey")
-            } else {
-                onSuccess("Błąd rozszyfrowania")
-            }
         } catch (e: Exception) {
             onSuccess("Błąd rozszyfrowania")
         }

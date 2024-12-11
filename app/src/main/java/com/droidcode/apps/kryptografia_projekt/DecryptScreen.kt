@@ -3,11 +3,9 @@ package com.droidcode.apps.kryptografia_projekt
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.net.Uri
-import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("") }
@@ -115,11 +112,8 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
                 label = {
-                    if (decryptType == DecryptType.DiffieHellman) {
-                        Text(stringResource(R.string.prime_number))
-                    } else {
                         Text(stringResource(R.string.type_text))
-                    }
+
                 }
             )
 
@@ -131,9 +125,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
                     label = {
-                        if (decryptType == DecryptType.DiffieHellman) {
-                            Text(stringResource(R.string.base_number))
-                        } else if(decryptType == DecryptType.CheckSignature) {
+                        if(decryptType == DecryptType.CheckSignature) {
                             Text("Wprowadź zaszyfrowany podpis")
                         } else {
                             Text(stringResource(R.string.type_key))
@@ -143,7 +135,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                 )
             }
 
-            if (decryptType == DecryptType.DiffieHellman || decryptType == DecryptType.CheckSignature) {
+            if (decryptType == DecryptType.CheckSignature) {
                 TextField(
                     value = publicKeyText,
                     onValueChange = { publicKeyText = it },
@@ -164,7 +156,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            if (decryptType != DecryptType.Polyalphabetic && decryptType != DecryptType.Transposition && decryptType != DecryptType.DiffieHellman  && decryptType != DecryptType.CheckCertificate) {
+            if (decryptType != DecryptType.Polyalphabetic && decryptType != DecryptType.Transposition  && decryptType != DecryptType.CheckCertificate) {
                 Button(
                     onClick = {
                         filePicker.launch(arrayOf("*/*"))
@@ -178,7 +170,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
 
             Button(
                 onClick = {
-                    if (decryptType != DecryptType.Transposition && decryptType != DecryptType.DiffieHellman && decryptType != DecryptType.CheckCertificate) {
+                    if (decryptType != DecryptType.Transposition && decryptType != DecryptType.CheckCertificate) {
                         if (keyText.isNotEmpty()) {
                             viewModel.decryptText(
                                 inputText,
@@ -187,7 +179,7 @@ fun DecipherScreen(modifier: Modifier, viewModel: DecryptViewModel, onNavigateBa
                                 decryptType
                             )
                         }
-                    } else if (decryptType == DecryptType.DiffieHellman || decryptType == DecryptType.CheckSignature) {
+                    } else if (decryptType == DecryptType.CheckSignature) {
                         if (keyText.isNotEmpty() && publicKeyText.isNotEmpty()) {
                             viewModel.decryptText(
                                 inputText,
@@ -280,7 +272,6 @@ fun SelectDecryptionType(
         "DES/CBC",
         "DES/OFB",
         "AES/CFB",
-        "Diffie-Hellman",
         "RSA",
         "Sprawdź certyfikat",
         "Sprawdź podpis cyfrowy"
@@ -321,18 +312,14 @@ fun SelectDecryptionType(
                                     }
 
                                     decryptTypes[6] -> {
-                                        onDismiss(DecryptType.DiffieHellman, decryptType)
-                                    }
-
-                                    decryptTypes[7] -> {
                                         onDismiss(DecryptType.RSA, decryptType)
                                     }
 
-                                    decryptTypes[8] -> {
+                                    decryptTypes[7] -> {
                                         onDismiss(DecryptType.CheckCertificate, decryptType)
                                     }
 
-                                    decryptTypes[9] -> {
+                                    decryptTypes[8] -> {
                                         onDismiss(DecryptType.CheckSignature, decryptType)
                                     }
                                 }
